@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PDC Clínico — Protocolo de Conduta Comportamental (ABA)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
+<style>
+:root{
+  --bg:#eaeff6; --bg2:#dde6f1;
+  --glass:rgba(255,255,255,.72); --glass-2:rgba(255,255,255,.55);
+  --glass-border:rgba(255,255,255,.85); --line:rgba(100,116,139,.18);
+  --blur:blur(16px);
+  --accent:#2563eb; --accent-2:#0ea5e9; --accent-soft:rgba(37,99,235,.12);
+  --accent-glow:rgba(37,99,235,.28);
+  --text:#16263d; --text-soft:#5b6b82; --muted:#8a99ad;
+  --success:#10b981; --warning:#f59e0b; --danger:#ef4444; --info:#0ea5e9;
+  --r:18px; --r-sm:11px; --r-lg:26px;
+  --shadow:0 10px 30px rgba(30,58,95,.10); --shadow-lg:0 18px 50px rgba(30,58,95,.16);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Manrope',system-ui,sans-serif;color:var(--text);
+  background:
+    radial-gradient(1100px 600px at 12% -8%, #dbe7fb 0%, transparent 55%),
+    radial-gradient(900px 600px at 110% 0%, #d6f0fb 0%, transparent 50%),
+    linear-gradient(160deg,var(--bg),var(--bg2));
+  background-attachment:fixed;min-height:100vh;
+}
+h1,h2,h3,h4,.brand{font-family:'Plus Jakarta Sans',sans-serif}
+a{color:var(--accent);text-decoration:none}
+.hidden{display:none!important}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(100,116,139,.3);border-radius:20px}
+
+/* ---------- generic glass ---------- */
+.glass{background:var(--glass);border:1px solid var(--glass-border);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-radius:var(--r);box-shadow:var(--shadow)}
+.card{background:var(--glass);border:1px solid var(--glass-border);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-radius:var(--r);box-shadow:var(--shadow);padding:22px}
+
+/* ---------- inputs ---------- */
+label.fld{display:block;font-size:13px;font-weight:600;color:var(--text-soft);margin:0 0 6px 2px}
+.req:after{content:" *";color:var(--danger)}
+input,select,textarea{
+  width:100%;font-family:inherit;font-size:14.5px;color:var(--text);
+  background:rgba(255,255,255,.85);border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:12px 14px;outline:none;transition:.18s}
+textarea{min-height:96px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.field{margin-bottom:16px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;justify-content:center;
+  font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;border:none;
+  border-radius:var(--r-sm);padding:12px 20px;transition:.18s;letter-spacing:.2px}
+.btn svg{width:18px;height:18px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 6px 18px var(--accent-glow)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 26px var(--accent-glow)}
+.btn-ghost{background:rgba(255,255,255,.7);border:1px solid var(--line);color:var(--text)}
+.btn-ghost:hover{background:#fff;border-color:var(--accent)}
+.btn-danger{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);color:var(--danger)}
+.btn-danger:hover{background:rgba(239,68,68,.18)}
+.btn-sm{padding:8px 13px;font-size:12.5px;border-radius:9px}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn-block{width:100%}
+
+/* ---------- badges ---------- */
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+  padding:4px 11px;border-radius:30px;background:var(--accent-soft);color:var(--accent)}
+.badge.green{background:rgba(16,185,129,.14);color:#0f9d6e}
+.badge.amber{background:rgba(245,158,11,.16);color:#b9770b}
+.badge.red{background:rgba(239,68,68,.14);color:#d6443a}
+.badge.gray{background:rgba(100,116,139,.14);color:#5b6b82}
+.badge.blue{background:rgba(14,165,233,.14);color:#0b87c0}
+
+/* ====================== AUTH ====================== */
+#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-card{width:100%;max-width:430px;padding:34px 32px}
+.auth-logo{display:flex;align-items:center;gap:13px;margin-bottom:6px}
+.logo-mark{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 8px 20px var(--accent-glow)}
+.logo-mark svg{width:26px;height:26px;color:#fff}
+.brand{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.brand small{display:block;font-size:11.5px;font-weight:600;color:var(--text-soft);letter-spacing:.4px}
+.auth-sub{color:var(--text-soft);font-size:14px;margin:14px 0 22px}
+.auth-tabs{display:flex;gap:6px;background:rgba(255,255,255,.6);padding:5px;border-radius:13px;margin-bottom:22px}
+.auth-tab{flex:1;text-align:center;padding:10px;border-radius:9px;font-weight:700;font-size:13.5px;
+  color:var(--text-soft);cursor:pointer;transition:.18s}
+.auth-tab.active{background:#fff;color:var(--accent);box-shadow:var(--shadow)}
+.avatar-pick{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.avatar-prev{width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid var(--glass-border);
+  background:var(--accent-soft) center/cover;display:grid;place-items:center;color:var(--accent);flex:none}
+.muted-line{font-size:12.5px;color:var(--muted);text-align:center;margin-top:16px}
+.link{cursor:pointer;font-weight:700}
+
+/* ====================== APP SHELL ====================== */
+#app{display:grid;grid-template-columns:262px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-right:1px solid var(--glass-border);padding:22px 16px;gap:6px;z-index:50}
+.side-brand{display:flex;align-items:center;gap:11px;padding:4px 8px 16px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.side-brand .logo-mark{width:38px;height:38px;border-radius:11px}
+.side-brand .logo-mark svg{width:21px;height:21px}
+.side-brand b{font-family:'Plus Jakarta Sans';font-size:16px;font-weight:800}
+.side-brand small{display:block;font-size:10.5px;color:var(--text-soft);font-weight:600}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;
+  color:var(--text-soft);font-weight:600;font-size:14px;cursor:pointer;transition:.16s}
+.nav-item svg{width:20px;height:20px;flex:none}
+.nav-item:hover{background:rgba(255,255,255,.7);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 6px 16px var(--accent-glow)}
+.nav-sep{font-size:10.5px;font-weight:800;letter-spacing:1px;color:var(--muted);padding:14px 14px 6px;text-transform:uppercase}
+.side-foot{margin-top:auto;border-top:1px solid var(--line);padding-top:14px}
+.user-chip{display:flex;align-items:center;gap:11px;padding:8px;border-radius:12px}
+.user-chip img,.user-chip .ph{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;
+  background:var(--accent-soft);display:grid;place-items:center;color:var(--accent);font-weight:700}
+.user-chip b{font-size:13.5px;display:block;line-height:1.2}
+.user-chip span{font-size:11.5px;color:var(--text-soft)}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:14px;padding:18px 30px;position:sticky;top:0;z-index:40;
+  background:rgba(234,239,246,.75);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-bottom:1px solid var(--line)}
+.topbar h2{font-size:21px;font-weight:800;letter-spacing:-.4px}
+.topbar p{font-size:13px;color:var(--text-soft)}
+.burger{display:none;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);
+  background:#fff;cursor:pointer;align-items:center;justify-content:center}
+.burger svg{width:22px;height:22px;color:var(--text)}
+.content{padding:26px 30px 60px;flex:1}
+.spacer{flex:1}
+
+/* ---------- grids ---------- */
+.grid{display:grid;gap:18px}
+.g-2{grid-template-columns:repeat(2,1fr)}
+.g-3{grid-template-columns:repeat(3,1fr)}
+.g-auto{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.stat{padding:20px}
+.stat .n{font-size:30px;font-weight:800;font-family:'Plus Jakarta Sans';line-height:1}
+.stat .l{font-size:13px;color:var(--text-soft);margin-top:6px;font-weight:600}
+.stat .ic{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent);margin-bottom:14px}
+.stat .ic svg{width:22px;height:22px}
+
+.section-head{display:flex;align-items:center;gap:14px;margin:4px 0 18px;flex-wrap:wrap}
+.section-head h3{font-size:18px;font-weight:800}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0 8px}
+.tbl th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:0 14px 4px;font-weight:800}
+.tbl td{background:rgba(255,255,255,.7);padding:13px 14px;font-size:14px;vertical-align:middle}
+.tbl tr td:first-child{border-radius:11px 0 0 11px}
+.tbl tr td:last-child{border-radius:0 11px 11px 0}
+.tbl .who{display:flex;align-items:center;gap:10px}
+.tbl .who img,.tbl .who .ph{width:36px;height:36px;border-radius:50%;object-fit:cover;
+  background:var(--accent-soft);display:grid;place-items:center;color:var(--accent);font-weight:700;font-size:13px;flex:none}
+
+/* ---------- patient picker ---------- */
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px}
+.pick{cursor:pointer;padding:20px;text-align:center;transition:.18s;border:2px solid transparent}
+.pick:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--accent)}
+.pick img,.pick .ph{width:96px;height:96px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;
+  background:linear-gradient(135deg,var(--accent-soft),rgba(14,165,233,.12));display:grid;place-items:center;
+  color:var(--accent);font-weight:800;font-size:34px}
+.pick b{font-size:16px;display:block;font-family:'Plus Jakarta Sans'}
+.pick span{font-size:12.5px;color:var(--text-soft)}
+
+/* ---------- form blocks ---------- */
+.form-block{margin-bottom:18px;padding:22px 24px}
+.form-block > .bh{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.form-block .bh .num{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent);
+  font-weight:800;display:grid;place-items:center;font-size:14px;flex:none}
+.form-block .bh h4{font-size:15.5px;font-weight:800}
+.form-block .bh p{font-size:12px;color:var(--muted)}
+.selected-patient{display:flex;align-items:center;gap:16px;padding:18px 22px;margin-bottom:18px;
+  background:linear-gradient(135deg,var(--accent-soft),rgba(14,165,233,.08))}
+.selected-patient img,.selected-patient .ph{width:60px;height:60px;border-radius:50%;object-fit:cover;flex:none;
+  background:#fff;display:grid;place-items:center;color:var(--accent);font-weight:800;font-size:24px}
+.sug{font-size:13px;padding:11px 14px;border-radius:11px;background:rgba(14,165,233,.1);
+  border:1px solid rgba(14,165,233,.25);color:#0b6a96;margin-top:8px;display:flex;gap:9px;align-items:flex-start}
+.sug svg{width:18px;height:18px;flex:none;margin-top:1px}
+
+/* ---------- kanban ---------- */
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(250px,1fr));gap:16px;align-items:start;overflow-x:auto;padding-bottom:10px}
+.kcol{background:var(--glass-2);border:1px solid var(--glass-border);border-radius:var(--r);padding:14px;min-height:120px}
+.kcol-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px}
+.kcol-h b{font-size:13.5px;font-weight:800}
+.kcol-h .cnt{font-size:12px;font-weight:800;color:var(--muted);background:rgba(255,255,255,.7);border-radius:20px;padding:2px 9px}
+.kcard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:11px;box-shadow:0 4px 12px rgba(30,58,95,.06);cursor:grab}
+.kcard:active{cursor:grabbing}
+.kcard.drag{opacity:.5}
+.kcard .kp{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.kcard .kp img,.kcard .kp .ph{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--accent-soft);
+  display:grid;place-items:center;color:var(--accent);font-weight:700;font-size:12px;flex:none}
+.kcard .kp b{font-size:13.5px;font-family:'Plus Jakarta Sans'}
+.kcard .meta{font-size:11.5px;color:var(--text-soft);margin-bottom:9px;line-height:1.5}
+.kcard .kact{display:flex;gap:6px;flex-wrap:wrap}
+.kcol.dropok{outline:2px dashed var(--accent);outline-offset:-6px}
+
+/* ---------- chips / multiselect ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:30px;font-size:13px;font-weight:600;
+  background:rgba(255,255,255,.85);border:1px solid var(--line);cursor:pointer;transition:.15s;user-select:none}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip.on .x{opacity:.85}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(22,38,61,.42);backdrop-filter:blur(4px);
+  display:none;align-items:flex-start;justify-content:center;z-index:200;padding:30px 16px;overflow-y:auto}
+.overlay.show{display:flex}
+.modal{width:100%;max-width:640px;background:var(--glass);border:1px solid var(--glass-border);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-lg);padding:26px;margin:auto}
+.modal.lg{max-width:920px}
+.modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-h h3{font-size:19px;font-weight:800}
+.x-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;
+  display:grid;place-items:center;color:var(--text-soft)}
+.x-btn:hover{color:var(--danger);border-color:var(--danger)}
+
+/* ---------- toast / loader ---------- */
+#toast{position:fixed;bottom:24px;right:24px;min-width:260px;max-width:380px;padding:14px 18px;
+  background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:var(--blur);
+  border-radius:13px;box-shadow:var(--shadow-lg);font-size:14px;font-weight:600;z-index:9999;
+  transform:translateY(120px);opacity:0;transition:.35s cubic-bezier(.34,1.56,.64,1)}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-left:4px solid var(--success)}
+#toast.error{border-left:4px solid var(--danger)}
+#toast.info{border-left:4px solid var(--info)}
+.loader{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.loader.dark{border-color:var(--accent-soft);border-top-color:var(--accent)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.center-load{display:grid;place-items:center;padding:60px;gap:14px;color:var(--text-soft)}
+.empty{text-align:center;padding:50px 20px;color:var(--text-soft)}
+.empty svg{width:54px;height:54px;color:var(--muted);margin-bottom:14px}
+.empty b{display:block;font-size:16px;color:var(--text);margin-bottom:4px;font-family:'Plus Jakarta Sans'}
+
+.notice{padding:14px 18px;border-radius:13px;font-size:13.5px;display:flex;gap:11px;align-items:flex-start;margin-bottom:18px}
+.notice svg{width:20px;height:20px;flex:none;margin-top:1px}
+.notice.warn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#9a6608}
+.notice.info{background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.25);color:#0b6a96}
+
+/* ---------- responsive ---------- */
+.mob-ov{display:none;position:fixed;inset:0;background:rgba(22,38,61,.4);z-index:45}
+.mob-ov.show{display:block}
+@media(max-width:980px){
+  #app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:-280px;top:0;width:262px;transition:left .28s ease;box-shadow:var(--shadow-lg)}
+  .sidebar.open{left:0}
+  .burger{display:flex}
+  .g-3{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:680px){
+  .content{padding:18px 16px 50px}.topbar{padding:14px 16px}
+  .g-2,.g-3{grid-template-columns:1fr}
+  .tbl thead{display:none}
+  .tbl,.tbl tbody,.tbl tr,.tbl td{display:block;width:100%}
+  .tbl tr{margin-bottom:12px}
+  .tbl td{border-radius:0!important;padding:9px 14px}
+  .tbl tr td:first-child{border-radius:11px 11px 0 0!important}
+  .tbl tr td:last-child{border-radius:0 0 11px 11px!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TOAST ============ -->
+<div id="toast"></div>
+
+<!-- ============ AUTH ============ -->
+<div id="auth">
+  <div class="auth-card glass">
+    <div class="auth-logo">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3 3 3 0 0 0 .5 1.65A3 3 0 0 0 6 16a3 3 0 0 0 3 3 3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3-3 3 3 0 0 0-.5-4.35A3 3 0 0 0 18 6a3 3 0 0 0-3-3 3 3 0 0 0-3-1Z"/><path d="M12 6v14"/></svg></div>
+      <div class="brand">PDC Clínico<small>PROTOCOLO DE CONDUTA · ABA</small></div>
+    </div>
+
+    <!-- tabs -->
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="AUTH.switch('login')">Entrar</div>
+      <div class="auth-tab" id="tabSignup" onclick="AUTH.switch('signup')">Criar conta</div>
+    </div>
+
+    <!-- LOGIN -->
+    <form id="formLogin" onsubmit="AUTH.login(event)">
+      <p class="auth-sub">Acesse com seu e-mail profissional para iniciar.</p>
+      <div class="field"><label class="fld req">E-mail</label><input type="email" id="li_email" placeholder="voce@clinica.com" required></div>
+      <div class="field"><label class="fld req">Senha</label><input type="password" id="li_pass" placeholder="••••••••" required></div>
+      <button class="btn btn-primary btn-block" id="loginBtn" type="submit">Entrar</button>
+      <p class="muted-line"><span class="link" onclick="AUTH.forgot()">Esqueci minha senha</span></p>
+    </form>
+
+    <!-- SIGNUP -->
+    <form id="formSignup" class="hidden" onsubmit="AUTH.signup(event)">
+      <p class="auth-sub">Cadastre-se. Seu acesso será liberado pela coordenação.</p>
+      <div class="avatar-pick">
+        <div class="avatar-prev" id="su_prev"><svg viewBox="0 0 24 24" width="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div style="flex:1">
+          <label class="fld">Foto de perfil</label>
+          <input type="file" id="su_foto" accept="image/*" onchange="AUTH.preview(event)">
+        </div>
+      </div>
+      <div class="field"><label class="fld req">Nome completo</label><input id="su_nome" required></div>
+      <div class="field"><label class="fld req">E-mail</label><input type="email" id="su_email" required></div>
+      <div class="field"><label class="fld">Telefone</label><input id="su_tel" placeholder="(00) 00000-0000"></div>
+      <div class="field"><label class="fld">Função clínica</label><select id="su_funcao"><option value="">Selecione…</option></select></div>
+      <div class="field"><label class="fld req">Senha</label><input type="password" id="su_pass" minlength="6" placeholder="mínimo 6 caracteres" required></div>
+      <button class="btn btn-primary btn-block" id="signupBtn" type="submit">Criar conta</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ AGUARDANDO LIBERAÇÃO ============ -->
+<div id="pending" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div class="auth-card glass" style="text-align:center">
+    <div class="logo-mark" style="margin:0 auto 18px"><svg viewBox="0 0 24 24" width="26" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+    <h3 style="font-size:21px;margin-bottom:10px">Acesso em análise</h3>
+    <p style="color:var(--text-soft);font-size:14.5px;line-height:1.6;margin-bottom:22px">Sua conta foi criada com sucesso. A coordenação clínica precisa <b>liberar seu acesso</b> antes do primeiro uso. Você será avisado(a) quando estiver tudo pronto.</p>
+    <button class="btn btn-ghost btn-block" onclick="AUTH.logout()">Sair</button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <div class="mob-ov" id="mobOv" onclick="UI.toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3 3 3 0 0 0 .5 1.65A3 3 0 0 0 6 16a3 3 0 0 0 3 3 3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3-3 3 3 0 0 0-.5-4.35A3 3 0 0 0 18 6a3 3 0 0 0-3-3 3 3 0 0 0-3-1Z"/></svg></div>
+      <div><b>PDC Clínico</b><small>Análise do Comportamento</small></div>
+    </div>
+    <div class="nav-item" data-view="home" onclick="UI.go('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/></svg>Início</div>
+    <div class="nav-item" data-view="novo" onclick="UI.go('novo')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 12v6M9 15h6"/></svg>Novo formulário</div>
+    <div class="nav-item" data-view="meus" onclick="UI.go('meus')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>Meus formulários</div>
+    <div class="nav-item" data-view="kanban" onclick="UI.go('kanban')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="6" height="18" rx="1"/><rect x="9.5" y="3" width="6" height="12" rx="1"/><rect x="16" y="3" width="5" height="9" rx="1"/></svg>Painel de Protocolos</div>
+
+    <div class="nav-sep adm-only">Administração</div>
+    <div class="nav-item adm-only" data-view="pacientes" onclick="UI.go('pacientes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/><path d="M16 7a3 3 0 0 1 0 6M21 20c0-2.4-1.4-4.2-3.5-4.8"/></svg>Pacientes</div>
+    <div class="nav-item adm-only" data-view="usuarios" onclick="UI.go('usuarios')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Usuários & Acessos</div>
+    <div class="nav-item adm-only" data-view="funcoes" onclick="UI.go('funcoes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/><circle cx="12" cy="12" r="3"/></svg>Funções clínicas</div>
+
+    <div class="side-foot">
+      <div class="user-chip">
+        <div class="ph" id="me_av">··</div>
+        <div style="min-width:0"><b id="me_nome">—</b><span id="me_role">—</span></div>
+      </div>
+      <button class="btn btn-ghost btn-block btn-sm" style="margin-top:10px" onclick="AUTH.logout()">
+        <svg viewBox="0 0 24 24" width="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sair</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="burger" onclick="UI.toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div><h2 id="pgTitle">Início</h2><p id="pgSub">Visão geral da clínica</p></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL ============ -->
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+
+<script>
+/* =====================================================================
+   CONFIG  —  preencha com os dados do seu projeto Supabase PDC_ESTHER
+   (Supabase → Project Settings → API)
+   ===================================================================== */
+const SUPABASE_URL      = 'https://fdyxdnrwwblxttzvltbg.supabase.co';        // PDC_ESTHER
+const SUPABASE_ANON_KEY = 'sb_publishable_fMGwWfRNK0oWvkfJ6ItVDg_PeECI7Xj';  // chave publishable (browser-safe)
+
+/* Webhook do n8n que gera o Protocolo de Conduta (preparação p/ próxima etapa) */
+const N8N_WEBHOOK_URL   = 'https://SEU-N8N/webhook/gerar-protocolo-pdc'; // <-- ajuste depois
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------- estado global ---------- */
+const S = { user:null, perfil:null, funcoes:[], pacientes:[], usuarios:[],
+            formSel:null, view:'home' };
+const can = { viewAll:()=> S.perfil && (S.perfil.role==='admin'||S.perfil.can_view_all),
+              admin:()=> S.perfil && S.perfil.role==='admin' };
+
+/* ===================== HELPERS ===================== */
+function toast(msg,type='info',ms=3600){const t=document.getElementById('toast');
+  t.textContent=msg;t.className=type+' show';clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),ms);}
+function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function initials(n){return (n||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();}
+function fmtDate(d){if(!d)return '—';const x=new Date(d);return x.toLocaleDateString('pt-BR')+' '+x.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function ageFrom(dob){if(!dob)return null;const d=new Date(dob),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n.getMonth()<d.getMonth()||(n.getMonth()==d.getMonth()&&n.getDate()<d.getDate()))a--;return a;}
+async function guard(p){try{const r=await p;if(r.error)throw r.error;return r.data;}catch(e){console.error(e);toast(e.message||'Erro inesperado','error');return null;}}
+function avatarHTML(url,name,cls=''){return url?`<img class="${cls}" src="${esc(url)}" alt="">`:`<div class="ph ${cls}">${initials(name)}</div>`;}
+
+const STATUS = {
+  rascunho:{l:'Rascunho',c:'gray'}, enviado:{l:'Enviado',c:'blue'},
+  em_geracao:{l:'Em geração (IA)',c:'amber'}, gerado:{l:'Gerado',c:'green'},
+  em_revisao:{l:'Em revisão',c:'amber'}, aprovado:{l:'Aprovado',c:'green'},
+  ajustes:{l:'Necessita ajustes',c:'red'}, finalizado:{l:'Finalizado',c:'green'} };
+function statusBadge(s){const x=STATUS[s]||{l:s,c:'gray'};return `<span class="badge ${x.c}">${x.l}</span>`;}
+
+/* ===================== MODAL ===================== */
+const Modal={
+  open(html,lg=false){const o=document.getElementById('overlay'),m=document.getElementById('modal');
+    m.className='modal'+(lg?' lg':'');m.innerHTML=html;o.classList.add('show');},
+  close(){document.getElementById('overlay').classList.remove('show');}
+};
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')Modal.close();});
+
+function confirmDel(msg,onYes){
+  Modal.open(`<div class="modal-h"><h3>Confirmar exclusão</h3><button class="x-btn" onclick="Modal.close()">✕</button></div>
+  <p style="color:var(--text-soft);margin-bottom:22px;line-height:1.6">${msg}</p>
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button class="btn btn-ghost" onclick="Modal.close()">Cancelar</button>
+    <button class="btn btn-danger" id="cfDel">Excluir</button></div>`);
+  document.getElementById('cfDel').onclick=async()=>{await onYes();Modal.close();};
+}
+
+/* ===================== AUTH ===================== */
+const AUTH={
+  switch(t){const l=t==='login';
+    document.getElementById('formLogin').classList.toggle('hidden',!l);
+    document.getElementById('formSignup').classList.toggle('hidden',l);
+    document.getElementById('tabLogin').classList.toggle('active',l);
+    document.getElementById('tabSignup').classList.toggle('active',!l);
+    if(!l)AUTH.loadFuncoes();},
+  async loadFuncoes(){
+    const {data}=await sb.from('funcoes_clinicas').select('id,nome').eq('ativo',true).order('nome');
+    const sel=document.getElementById('su_funcao');
+    sel.innerHTML='<option value="">Selecione…</option>'+(data||[]).map(f=>`<option value="${f.id}">${esc(f.nome)}</option>`).join('');
+  },
+  preview(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+    r.onload=ev=>{document.getElementById('su_prev').innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;};
+    r.readAsDataURL(f);},
+  async login(e){e.preventDefault();const b=document.getElementById('loginBtn');b.disabled=true;b.innerHTML='<span class="loader"></span>';
+    const email=li_email.value.trim(),password=li_pass.value;
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    b.disabled=false;b.textContent='Entrar';
+    if(error){toast(error.message,'error');return;}
+    await boot();},
+  async signup(e){e.preventDefault();const b=document.getElementById('signupBtn');b.disabled=true;b.innerHTML='<span class="loader"></span>';
+    const nome=su_nome.value.trim(),email=su_email.value.trim(),telefone=su_tel.value.trim(),
+          funcao_id=su_funcao.value||null,password=su_pass.value;
+    const {data,error}=await sb.auth.signUp({email,password,options:{data:{nome,telefone,funcao_id}}});
+    if(error){b.disabled=false;b.textContent='Criar conta';toast(error.message,'error');return;}
+    // upload foto + atualiza perfil (caso sessão já ativa)
+    try{
+      const uid=data.user?.id; const file=su_foto.files[0];
+      if(uid){
+        let foto_url=null;
+        if(file){const path=`${uid}/${Date.now()}.${file.name.split('.').pop()}`;
+          const up=await sb.storage.from('avatars').upload(path,file,{upsert:true});
+          if(!up.error)foto_url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;}
+        await sb.from('perfis').update({nome,telefone,funcao_id,...(foto_url?{foto_url}:{})}).eq('id',uid);
+      }
+    }catch(err){console.warn(err);}
+    b.disabled=false;b.textContent='Criar conta';
+    toast('Conta criada! Aguarde a liberação da coordenação.','success',5000);
+    AUTH.switch('login');},
+  async forgot(){const email=prompt('Informe seu e-mail para receber o link de redefinição de senha:');
+    if(!email)return;const {error}=await sb.auth.resetPasswordForEmail(email.trim(),{redirectTo:location.href});
+    toast(error?error.message:'Link de redefinição enviado para o e-mail.',error?'error':'success',5000);},
+  async logout(){await sb.auth.signOut();location.reload();}
+};
+
+/* ===================== BOOT / SESSION ===================== */
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){show('auth');return;}
+  S.user=session.user;
+  const {data:perfil,error}=await sb.from('perfis').select('*').eq('id',S.user.id).single();
+  if(error||!perfil){show('auth');toast('Perfil não encontrado.','error');return;}
+  S.perfil=perfil;
+  if(!perfil.ativo){show('pending');return;}
+  // carrega funções (nome da função do usuário)
+  await loadFuncoes();
+  renderMe();
+  document.querySelectorAll('.adm-only').forEach(el=>el.style.display=can.admin()?'':'none');
+  show('app'); UI.go('home');
+}
+function show(which){['auth','pending','app'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==which));}
+async function loadFuncoes(){const {data}=await sb.from('funcoes_clinicas').select('*').order('nome');S.funcoes=data||[];}
+function funcaoNome(id){return S.funcoes.find(f=>f.id===id)?.nome||'—';}
+function renderMe(){
+  document.getElementById('me_nome').textContent=S.perfil.nome||S.user.email;
+  document.getElementById('me_role').textContent=({admin:'Administrador',coordenador:'Coordenação',profissional:funcaoNome(S.perfil.funcao_id)})[S.perfil.role];
+  const av=document.getElementById('me_av');
+  if(S.perfil.foto_url){av.outerHTML=`<img id="me_av" src="${esc(S.perfil.foto_url)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">`;}
+  else av.textContent=initials(S.perfil.nome);
+}
+
+/* ===================== UI / ROUTER ===================== */
+const TITLES={home:['Início','Visão geral da clínica'],novo:['Novo formulário','Selecione o paciente e preencha o protocolo'],
+  meus:['Meus formulários','Acompanhe seus preenchimentos'],kanban:['Painel de Protocolos','Fluxo de geração e revisão (Kanban)'],
+  pacientes:['Pacientes','Cadastro e gestão de pacientes'],usuarios:['Usuários & Acessos','Libere acessos, papéis e permissões'],
+  funcoes:['Funções clínicas','Defina as funções da equipe']};
+const UI={
+  toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('mobOv').classList.toggle('show');},
+  go(view){
+    if(['pacientes','usuarios','funcoes'].includes(view)&&!can.admin()){toast('Acesso restrito à administração.','error');return;}
+    S.view=view;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===view));
+    const [t,s]=TITLES[view]||['',''];pgTitle.textContent=t;pgSub.textContent=s;
+    if(window.innerWidth<=980){document.getElementById('sidebar').classList.remove('open');document.getElementById('mobOv').classList.remove('show');}
+    ({home:Views.home,novo:Views.novo,meus:Views.meus,kanban:Views.kanban,
+      pacientes:Views.pacientes,usuarios:Views.usuarios,funcoes:Views.funcoes}[view])();
+  }
+};
+function setContent(h){document.getElementById('content').innerHTML=h;}
+function loading(){setContent('<div class="center-load"><span class="loader dark"></span>Carregando…</div>');}
+
+/* ===================== FORM SCHEMA (ABA) ===================== */
+const SCHEMA=[
+ {n:1,t:'Motivo da solicitação do protocolo',d:'Por que este protocolo está sendo solicitado?',f:[
+   {k:'motivo_protocolo',l:'Motivo / contexto da solicitação',type:'textarea'}]},
+ {n:2,t:'Comportamento-alvo',d:'Comportamento prioritário a ser trabalhado',f:[
+   {k:'comportamento_alvo',l:'Descreva o comportamento-alvo',type:'textarea'}]},
+ {n:3,t:'Definição operacional',d:'Descrição observável e mensurável',f:[
+   {k:'descricao_operacional',l:'Definição operacional do comportamento',type:'textarea'}]},
+ {n:4,t:'Frequência, duração e intensidade',d:'Dados objetivos do comportamento',f:[
+   {k:'frequencia',l:'Frequência',type:'text',ph:'Ex.: 5x ao dia'},
+   {k:'duracao',l:'Duração',type:'text',ph:'Ex.: 2 a 10 min por episódio'},
+   {k:'intensidade',l:'Intensidade',type:'select',opt:['Leve','Moderada','Alta','Muito alta']}]},
+ {n:5,t:'Contextos clínicos de ocorrência',d:'Onde/quando ocorre',f:[
+   {k:'contextos',l:'Contextos e situações em que o comportamento ocorre',type:'textarea'}]},
+ {n:6,t:'Levantamento ABC',d:'Antecedente · Comportamento · Consequência',f:[
+   {k:'antecedentes',l:'Antecedentes (A)',type:'textarea'},
+   {k:'comportamento',l:'Comportamento (B)',type:'textarea'},
+   {k:'consequencias',l:'Consequências (C)',type:'textarea'}]},
+ {n:7,t:'Hipótese funcional',d:'Função provável do comportamento',f:[
+   {k:'hipotese_funcional',l:'Hipótese funcional',type:'textarea'}]},
+ {n:8,t:'Avaliação de risco',d:'Riscos clínicos identificados',f:[
+   {k:'risco_clinico',l:'Riscos (físico, autolesão, fuga, etc.)',type:'textarea'}]},
+ {n:9,t:'Repertórios da criança',d:'Habilidades atuais / déficits',f:[
+   {k:'repertorios',l:'Repertórios e déficits de repertório',type:'textarea'}]},
+ {n:10,t:'Comunicação funcional',d:'Como a criança se comunica',f:[
+   {k:'comunicacao_funcional',l:'Comunicação funcional atual',type:'textarea'}]},
+ {n:11,t:'Estratégias já utilizadas',d:'O que já foi tentado',f:[
+   {k:'estrategias_utilizadas',l:'Estratégias anteriores e resultados',type:'textarea'}]},
+ {n:12,t:'Reforçadores identificados',d:'O que motiva a criança',f:[
+   {k:'reforcadores',l:'Reforçadores',type:'textarea'}]},
+ {n:13,t:'Objetivos da intervenção',d:'Metas terapêuticas',f:[
+   {k:'objetivos_intervencao',l:'Objetivos',type:'textarea'}]},
+ {n:14,t:'Comportamentos substitutivos',d:'Comportamentos a serem ensinados',f:[
+   {k:'comportamento_substitutivo',l:'Comportamentos substitutivos desejados',type:'textarea'}]},
+ {n:15,t:'Orientações para a equipe clínica',d:'Condutas para a equipe',f:[
+   {k:'orientacoes_equipe',l:'Orientações para a equipe',type:'textarea'}]},
+ {n:16,t:'Orientações para a família',d:'Condutas para os responsáveis',f:[
+   {k:'orientacoes_familia',l:'Orientações para a família',type:'textarea'}]},
+ {n:17,t:'Dados objetivos / anexos',d:'Registros, gráficos, observações objetivas',f:[
+   {k:'dados_objetivos',l:'Dados objetivos',type:'textarea'}]},
+ {n:18,t:'Impressão clínica do profissional',d:'Análise qualitativa',f:[
+   {k:'impressao_clinica',l:'Impressão clínica',type:'textarea'}]},
+];
+const CLASS_BLOCK={n:19,t:'Perguntas classificatórias',d:'Definem o modelo do protocolo'};
+
+/* ===================== VIEWS ===================== */
+const Views={};
+
+/* ---------- HOME ---------- */
+Views.home=async()=>{
+  loading();
+  const mine = !can.viewAll();
+  let q=sb.from('formularios_conduta').select('id,status,profissional_id');
+  const {data:forms}=await q;
+  const fset=(forms||[]).filter(f=>can.viewAll()||f.profissional_id===S.user.id);
+  const cnt=s=>fset.filter(f=>f.status===s).length;
+  const {count:nPac}=await sb.from('pacientes').select('id',{count:'exact',head:true});
+  setContent(`
+   <div class="notice info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+     Olá, <b style="margin:0 4px">${esc(S.perfil.nome||'')}</b>! ${can.viewAll()?'Você tem visão de toda a clínica.':'Você visualiza apenas seus próprios formulários.'}</div>
+   <div class="grid g-3">
+     <div class="card stat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div><div class="n">${fset.length}</div><div class="l">Formulários ${mine?'(meus)':'(total)'}</div></div>
+     <div class="card stat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3"/><path d="M6 16a3 3 0 0 0 3 3 3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3-3"/></svg></div><div class="n">${cnt('gerado')+cnt('aprovado')+cnt('finalizado')}</div><div class="l">Protocolos gerados</div></div>
+     <div class="card stat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/></svg></div><div class="n">${nPac||0}</div><div class="l">Pacientes ativos</div></div>
+   </div>
+   <div class="card" style="margin-top:18px">
+     <div class="section-head"><h3>Ações rápidas</h3></div>
+     <div style="display:flex;gap:12px;flex-wrap:wrap">
+       <button class="btn btn-primary" onclick="UI.go('novo')">+ Novo formulário</button>
+       <button class="btn btn-ghost" onclick="UI.go('kanban')">Abrir Painel de Protocolos</button>
+       ${can.admin()?'<button class="btn btn-ghost" onclick="UI.go(\'pacientes\')">Cadastrar paciente</button>':''}
+     </div>
+   </div>`);
+};
+
+/* ---------- NOVO: passo 1 seleção de paciente ---------- */
+Views.novo=async()=>{
+  loading();
+  const {data:pac}=await sb.from('pacientes').select('*').eq('ativo',true).order('nome');
+  S.pacientes=pac||[];
+  if(!S.pacientes.length){
+    setContent(`<div class="card empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/></svg>
+      <b>Nenhum paciente cadastrado</b><p>${can.admin()?'Cadastre um paciente para iniciar.':'Solicite à coordenação o cadastro do paciente.'}</p>
+      ${can.admin()?'<button class="btn btn-primary" style="margin-top:14px" onclick="UI.go(\'pacientes\')">Cadastrar paciente</button>':''}</div>`);
+    return;
+  }
+  setContent(`
+   <div class="section-head"><h3>1. Selecione o paciente</h3><span class="badge blue">Clique no card</span></div>
+   <div class="pick-grid">${S.pacientes.map(p=>`
+     <div class="pick card" onclick="Views.abrirForm('${p.id}')">
+       ${avatarHTML(p.foto_url,p.nome)}
+       <b>${esc(p.nome)}</b>
+       <span>${p.idade||ageFrom(p.data_nascimento)||'—'} anos</span>
+     </div>`).join('')}</div>`);
+};
+
+/* ---------- NOVO: passo 2 formulário ---------- */
+Views.abrirForm=async(pid,existing=null)=>{
+  const p=S.pacientes.find(x=>x.id===pid)||(await sb.from('pacientes').select('*').eq('id',pid).single()).data;
+  if(!p){toast('Paciente não encontrado','error');return;}
+  S.formSel={paciente:p,form:existing};
+  const v=k=> existing?esc(existing[k]||''):'';
+  const blocks=SCHEMA.map(b=>`
+    <div class="form-block card">
+      <div class="bh"><div class="num">${b.n}</div><div><h4>${b.t}</h4><p>${b.d}</p></div></div>
+      ${b.f.map(f=>fieldHTML(f,v(f.k))).join('')}
+    </div>`).join('');
+  const cls=`
+    <div class="form-block card">
+      <div class="bh"><div class="num">${CLASS_BLOCK.n}</div><div><h4>${CLASS_BLOCK.t}</h4><p>${CLASS_BLOCK.d}</p></div></div>
+      <div class="field"><label class="fld req">1 — O comportamento apresenta risco físico, crise intensa, agressividade, autolesão, fuga, destruição de materiais, alta intensidade ou prejuízo significativo ao atendimento clínico?</label>
+        <select id="f_pergunta_risco" onchange="Views.sugerir()"><option value="">Selecione…</option><option ${existing?.pergunta_risco==='Sim'?'selected':''}>Sim</option><option ${existing?.pergunta_risco==='Não'?'selected':''}>Não</option></select></div>
+      <div class="field"><label class="fld req">2 — O comportamento pode ser classificado por níveis de intensidade e manejado com respostas graduais da equipe clínica?</label>
+        <select id="f_pergunta_escala" onchange="Views.sugerir()"><option value="">Selecione…</option><option ${existing?.pergunta_escala==='Sim'?'selected':''}>Sim</option><option ${existing?.pergunta_escala==='Não'?'selected':''}>Não</option></select></div>
+      <div id="sugBox"></div>
+      <div class="field" style="margin-top:14px"><label class="fld req">Modelo do protocolo a aplicar</label>
+        <select id="f_modelo_escolhido"><option value="">Selecione…</option><option ${existing?.modelo_escolhido==='Detalhado'?'selected':''}>Detalhado</option><option ${existing?.modelo_escolhido==='Escala'?'selected':''}>Escala</option></select></div>
+    </div>`;
+  setContent(`
+    <div class="selected-patient card">
+      ${avatarHTML(p.foto_url,p.nome)}
+      <div style="flex:1">
+        <b style="font-size:18px;font-family:'Plus Jakarta Sans'">${esc(p.nome)}</b>
+        <div style="font-size:13px;color:var(--text-soft)">${p.idade||ageFrom(p.data_nascimento)||'—'} anos · Mãe: ${esc(p.nome_mae||'—')} · Pai: ${esc(p.nome_pai||'—')}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="UI.go('novo')">Trocar paciente</button>
+    </div>
+    ${blocks}
+    ${cls}
+    <div class="card" style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:14px">
+      <button class="btn btn-ghost" onclick="Views.salvarForm('rascunho')" id="btnRasc">Salvar rascunho</button>
+      <button class="btn btn-primary" onclick="Views.salvarForm('enviado')" id="btnEnv">Enviar para o painel</button>
+    </div>`);
+  Views.sugerir();
+};
+function fieldHTML(f,val=''){
+  const id='f_'+f.k;
+  if(f.type==='textarea')return `<div class="field"><label class="fld" for="${id}">${f.l}</label><textarea id="${id}" placeholder="${f.ph||''}">${val}</textarea></div>`;
+  if(f.type==='select')return `<div class="field"><label class="fld" for="${id}">${f.l}</label><select id="${id}"><option value="">Selecione…</option>${f.opt.map(o=>`<option ${val===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
+  return `<div class="field"><label class="fld" for="${id}">${f.l}</label><input id="${id}" value="${val}" placeholder="${f.ph||''}"></div>`;
+}
+Views.sugerir=()=>{
+  const r=document.getElementById('f_pergunta_risco')?.value, e=document.getElementById('f_pergunta_escala')?.value;
+  const box=document.getElementById('sugBox');if(!box)return;
+  let sug=null;
+  if(r==='Sim')sug='Detalhado';
+  else if(r==='Não'&&e==='Sim')sug='Escala';
+  else if(r==='Não'&&e==='Não')sug='Detalhado';
+  if(!sug){box.innerHTML='';return;}
+  box.innerHTML=`<div class="sug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/><path d="M9 21h6"/></svg>
+    <span>Sugestão automática (ABA): <b>Protocolo ${sug}</b>. O profissional pode confirmar ou ajustar abaixo.</span></div>`;
+  const ms=document.getElementById('f_modelo_escolhido');if(ms&&!ms.value)ms.value=sug;
+};
+Views.salvarForm=async(status)=>{
+  const p=S.formSel.paciente;
+  const payload={paciente_id:p.id,profissional_id:S.user.id,status};
+  SCHEMA.forEach(b=>b.f.forEach(f=>{payload[f.k]=document.getElementById('f_'+f.k)?.value||null;}));
+  payload.pergunta_risco=document.getElementById('f_pergunta_risco').value||null;
+  payload.pergunta_escala=document.getElementById('f_pergunta_escala').value||null;
+  payload.modelo_escolhido=document.getElementById('f_modelo_escolhido').value||null;
+  if(status==='enviado'){
+    if(!payload.comportamento_alvo){toast('Preencha ao menos o comportamento-alvo.','error');return;}
+    if(!payload.pergunta_risco||!payload.pergunta_escala||!payload.modelo_escolhido){toast('Responda as perguntas classificatórias e escolha o modelo.','error');return;}
+    payload.data_envio=new Date().toISOString();
+  }
+  const btn=document.getElementById(status==='enviado'?'btnEnv':'btnRasc');btn.disabled=true;btn.innerHTML='<span class="loader"></span>';
+  let res;
+  if(S.formSel.form?.id) res=await sb.from('formularios_conduta').update(payload).eq('id',S.formSel.form.id).select().single();
+  else res=await sb.from('formularios_conduta').insert(payload).select().single();
+  btn.disabled=false;
+  if(res.error){toast(res.error.message,'error');btn.textContent=status==='enviado'?'Enviar para o painel':'Salvar rascunho';return;}
+  S.formSel.form=res.data;
+  toast(status==='enviado'?'Formulário enviado ao painel!':'Rascunho salvo.','success');
+  UI.go(status==='enviado'?'kanban':'meus');
+};
+
+/* ---------- MEUS FORMULÁRIOS ---------- */
+Views.meus=async()=>{
+  loading();
+  let q=sb.from('formularios_conduta').select('*,pacientes(nome,foto_url)').order('updated_at',{ascending:false});
+  if(!can.viewAll())q=q.eq('profissional_id',S.user.id);
+  const {data}=await q;
+  if(!data?.length){setContent(`<div class="card empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><b>Sem formulários ainda</b><p>Crie seu primeiro formulário clínico.</p><button class="btn btn-primary" style="margin-top:14px" onclick="UI.go('novo')">+ Novo formulário</button></div>`);return;}
+  setContent(`<div class="card"><table class="tbl"><thead><tr><th>Paciente</th><th>Modelo</th><th>Status</th><th>Atualizado</th><th></th></tr></thead><tbody>
+    ${data.map(f=>`<tr>
+      <td><div class="who">${avatarHTML(f.pacientes?.foto_url,f.pacientes?.nome)}<b>${esc(f.pacientes?.nome||'—')}</b></div></td>
+      <td>${f.modelo_escolhido?`<span class="badge">${f.modelo_escolhido}</span>`:'—'}</td>
+      <td>${statusBadge(f.status)}</td>
+      <td style="color:var(--text-soft);font-size:13px">${fmtDate(f.updated_at)}</td>
+      <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">${f.status==='rascunho'?'Editar':'Ver'}</button></td>
+    </tr>`).join('')}
+  </tbody></table></div>`);
+};
+Views.editForm=async(id)=>{
+  const {data:f}=await sb.from('formularios_conduta').select('*').eq('id',id).single();
+  if(!f)return;
+  S.pacientes=S.pacientes.length?S.pacientes:(await sb.from('pacientes').select('*')).data||[];
+  await Views.abrirForm(f.paciente_id,f);
+};
+
+/* ---------- KANBAN ---------- */
+const KCOLS=[
+  {key:'enviado',l:'Enviados',hint:'Aguardando geração'},
+  {key:'em_geracao',l:'Gerar Protocolo (IA)',hint:'Enviado ao n8n'},
+  {key:'gerado',l:'Gerado · Revisar',hint:'Protocolo pronto'},
+  {key:'finalizado',l:'Finalizado',hint:'Aprovado'}
+];
+function kStatusToCol(s){if(s==='enviado')return 'enviado';if(s==='em_geracao')return 'em_geracao';
+  if(['gerado','em_revisao','aprovado','ajustes'].includes(s))return 'gerado';if(s==='finalizado')return 'finalizado';return null;}
+Views.kanban=async()=>{
+  loading();
+  let q=sb.from('formularios_conduta').select('*,pacientes(nome,foto_url),perfis:profissional_id(nome)').neq('status','rascunho').order('updated_at',{ascending:false});
+  if(!can.viewAll())q=q.eq('profissional_id',S.user.id);
+  const {data}=await q;
+  const forms=data||[];
+  const cols=KCOLS.map(c=>{
+    const items=forms.filter(f=>kStatusToCol(f.status)===c.key);
+    return `<div class="kcol" data-col="${c.key}" ondragover="Kan.over(event)" ondragleave="Kan.leave(event)" ondrop="Kan.drop(event,'${c.key}')">
+      <div class="kcol-h"><b>${c.l}</b><span class="cnt">${items.length}</span></div>
+      ${items.map(f=>kcard(f)).join('')||`<div style="font-size:12.5px;color:var(--muted);text-align:center;padding:14px">${c.hint}</div>`}
+    </div>`;}).join('');
+  setContent(`
+    ${can.viewAll()?'':'<div class="notice info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Você vê apenas seus próprios protocolos. A coordenação acompanha todos.</div>'}
+    <div class="kanban">${cols}</div>`);
+};
+function kcard(f){
+  return `<div class="kcard" draggable="${can.viewAll()}" ondragstart="Kan.start(event,'${f.id}')" ondragend="Kan.end(event)">
+    <div class="kp">${avatarHTML(f.pacientes?.foto_url,f.pacientes?.nome)}<b>${esc(f.pacientes?.nome||'—')}</b></div>
+    <div class="meta">Modelo: <b>${f.modelo_escolhido||'—'}</b><br>Prof.: ${esc(f.perfis?.nome||'—')}<br>${statusBadge(f.status)}</div>
+    <div class="kact">
+      <button class="btn btn-ghost btn-sm" onclick="Kan.detail('${f.id}')">Detalhes</button>
+      ${f.status==='enviado'&&can.viewAll()?`<button class="btn btn-primary btn-sm" onclick="Kan.gerar('${f.id}')">Gerar protocolo</button>`:''}
+      ${['gerado','em_revisao','aprovado','ajustes'].includes(f.status)?`<button class="btn btn-ghost btn-sm" onclick="Kan.baixar('${f.id}')">Baixar .docx</button>`:''}
+      ${['gerado','em_revisao','aprovado'].includes(f.status)&&can.viewAll()?`<button class="btn btn-ghost btn-sm" onclick="Kan.move('${f.id}','finalizado')">Finalizar</button>`:''}
+    </div>
+  </div>`;
+}
+const Kan={
+  _drag:null,
+  start(e,id){if(!can.viewAll())return;Kan._drag=id;e.target.classList.add('drag');},
+  end(e){e.target.classList.remove('drag');document.querySelectorAll('.kcol').forEach(c=>c.classList.remove('dropok'));},
+  over(e){if(!can.viewAll())return;e.preventDefault();e.currentTarget.classList.add('dropok');},
+  leave(e){e.currentTarget.classList.remove('dropok');},
+  async drop(e,col){e.preventDefault();e.currentTarget.classList.remove('dropok');if(!Kan._drag||!can.viewAll())return;
+    const id=Kan._drag;Kan._drag=null;
+    if(col==='em_geracao'){await Kan.gerar(id);return;}
+    const map={enviado:'enviado',gerado:'em_revisao',finalizado:'finalizado'};
+    await Kan.move(id,map[col]||col);},
+  async move(id,status){const r=await guard(sb.from('formularios_conduta').update({status}).eq('id',id).select().single());
+    if(r){toast('Status atualizado.','success');Views.kanban();}},
+  async gerar(id){
+    // 1. marca em_geracao  2. dispara webhook n8n (preparação)
+    await guard(sb.from('formularios_conduta').update({status:'em_geracao'}).eq('id',id).select().single());
+    const {data:f}=await sb.from('formularios_conduta').select('*,pacientes(*)').eq('id',id).single();
+    const payload={ event:'gerar_protocolo_pdc', formulario_id:id, paciente:f?.pacientes||null,
+      modelo_escolhido:f?.modelo_escolhido, dados:f, solicitado_por:S.perfil.nome, ts:new Date().toISOString() };
+    try{
+      if(N8N_WEBHOOK_URL && !N8N_WEBHOOK_URL.includes('SEU-N8N')){
+        await fetch(N8N_WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        toast('Enviado ao n8n para geração do protocolo.','success');
+      }else{
+        toast('Cartão movido. Configure o webhook do n8n para gerar automaticamente.','info',5000);
+      }
+    }catch(err){toast('Falha ao chamar o n8n: '+err.message,'error');}
+    Views.kanban();
+  },
+  async detail(id){
+    const {data:f}=await sb.from('formularios_conduta').select('*,pacientes(nome),perfis:profissional_id(nome)').eq('id',id).single();
+    const {data:prot}=await sb.from('protocolos_gerados').select('*').eq('formulario_id',id).order('data_geracao',{ascending:false}).limit(1).maybeSingle();
+    const rows=SCHEMA.flatMap(b=>b.f).map(f2=>`<tr><td style="color:var(--text-soft);font-size:12.5px;width:38%">${f2.l}</td><td>${esc(f[f2.k])||'<span style="color:var(--muted)">Não informado</span>'}</td></tr>`).join('');
+    Modal.open(`<div class="modal-h"><h3>${esc(f.pacientes?.nome||'')} — Protocolo</h3><button class="x-btn" onclick="Modal.close()">✕</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${statusBadge(f.status)} <span class="badge">Modelo: ${f.modelo_escolhido||'—'}</span> <span class="badge gray">Prof.: ${esc(f.perfis?.nome||'—')}</span></div>
+      ${prot?`<div class="card" style="margin-bottom:16px"><b style="font-family:'Plus Jakarta Sans'">Protocolo gerado pela IA</b><div style="margin-top:10px;font-size:14px;line-height:1.6;max-height:300px;overflow:auto">${prot.protocolo_html||esc(prot.protocolo_texto)||''}</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="Kan.baixar('${id}')">Baixar .docx</button></div>`:'<div class="notice info" style="margin-bottom:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Protocolo ainda não gerado pela IA.</div>'}
+      <table class="tbl" style="border-spacing:0"><tbody>${rows}</tbody></table>`,true);
+  },
+  async baixar(id){
+    const {data:f}=await sb.from('formularios_conduta').select('*,pacientes(*),perfis:profissional_id(nome)').eq('id',id).single();
+    const {data:prot}=await sb.from('protocolos_gerados').select('*').eq('formulario_id',id).order('data_geracao',{ascending:false}).limit(1).maybeSingle();
+    const html=docxHTML(f,prot);
+    const name=`Protocolo_${(f.pacientes?.nome||'paciente').replace(/\s+/g,'_')}.docx`;
+    try{
+      const blob=window.htmlDocx?window.htmlDocx.asBlob(html):new Blob(['﻿'+html],{type:'application/msword'});
+      const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
+      toast('Download iniciado (.docx).','success');
+    }catch(err){toast('Erro ao gerar .docx: '+err.message,'error');}
+  }
+};
+function docxHTML(f,prot){
+  const p=f.pacientes||{};
+  if(prot&&(prot.protocolo_html||prot.protocolo_texto)){
+    return `<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial">
+      <h2>Protocolo de Conduta Comportamental (ABA)</h2>
+      <p><b>Paciente:</b> ${esc(p.nome||'')} &nbsp; <b>Modelo:</b> ${esc(prot.modelo_protocolo||f.modelo_escolhido||'')}</p>
+      <hr>${prot.protocolo_html||('<p>'+esc(prot.protocolo_texto).replace(/\n/g,'<br>')+'</p>')}</body></html>`;
+  }
+  // fallback: estrutura a partir do formulário
+  const sec=SCHEMA.map(b=>`<h3>${b.n}. ${b.t}</h3>`+b.f.map(x=>`<p><b>${x.l}:</b> ${esc(f[x.k])||'Informação não fornecida no formulário.'}</p>`).join('')).join('');
+  return `<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial;line-height:1.5">
+    <h1>Protocolo de Conduta Comportamental — ABA</h1>
+    <p><b>Paciente:</b> ${esc(p.nome||'')} (${p.idade||ageFrom(p.data_nascimento)||'—'} anos)<br>
+    <b>Mãe:</b> ${esc(p.nome_mae||'—')} &nbsp; <b>Pai:</b> ${esc(p.nome_pai||'—')}<br>
+    <b>Profissional:</b> ${esc(f.perfis?.nome||'—')}<br>
+    <b>Modelo escolhido:</b> ${esc(f.modelo_escolhido||'—')}</p><hr>${sec}
+    <h3>Perguntas classificatórias</h3>
+    <p><b>Risco/complexidade:</b> ${esc(f.pergunta_risco||'—')}<br><b>Manejo por níveis:</b> ${esc(f.pergunta_escala||'—')}</p>
+    <hr><p><i>Documento gerado pelo Sistema PDC Clínico. Sujeito à revisão e aprovação da coordenação.</i></p></body></html>`;
+}
+
+/* ---------- PACIENTES (admin) ---------- */
+Views.pacientes=async()=>{
+  loading();
+  const {data}=await sb.from('pacientes').select('*').order('nome');
+  S.pacientes=data||[];
+  setContent(`
+    <div class="section-head"><h3>Pacientes</h3><div class="spacer"></div><button class="btn btn-primary" onclick="Views.pacForm()">+ Novo paciente</button></div>
+    ${!data?.length?'<div class="card empty"><b>Nenhum paciente</b><p>Cadastre o primeiro paciente da clínica.</p></div>':
+    `<div class="card"><table class="tbl"><thead><tr><th>Paciente</th><th>Idade</th><th>Responsáveis</th><th></th></tr></thead><tbody>
+    ${data.map(p=>`<tr>
+      <td><div class="who">${avatarHTML(p.foto_url,p.nome)}<b>${esc(p.nome)}</b></div></td>
+      <td>${p.idade||ageFrom(p.data_nascimento)||'—'} anos</td>
+      <td style="font-size:13px;color:var(--text-soft)">Mãe: ${esc(p.nome_mae||'—')}<br>Pai: ${esc(p.nome_pai||'—')}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="Views.pacForm('${p.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="Views.pacDel('${p.id}','${esc(p.nome)}')">Excluir</button></td>
+    </tr>`).join('')}</tbody></table></div>`}`);
+};
+Views.pacForm=async(id)=>{
+  const p=id?S.pacientes.find(x=>x.id===id):{};
+  // carrega vínculos atuais
+  let disc=[],profs=[];
+  if(id){
+    disc=((await sb.from('paciente_disciplinas').select('funcao_id').eq('paciente_id',id)).data||[]).map(x=>x.funcao_id);
+    profs=((await sb.from('paciente_profissionais').select('profissional_id').eq('paciente_id',id)).data||[]).map(x=>x.profissional_id);
+  }
+  if(!S.usuarios.length){S.usuarios=(await sb.from('perfis').select('id,nome,role,foto_url').eq('ativo',true)).data||[];}
+  const chipsDisc=S.funcoes.map(f=>`<div class="chip ${disc.includes(f.id)?'on':''}" data-disc="${f.id}" onclick="this.classList.toggle('on')">${esc(f.nome)}</div>`).join('');
+  const chipsProf=S.usuarios.filter(u=>u.role!=='admin'||true).map(u=>`<div class="chip ${profs.includes(u.id)?'on':''}" data-prof="${u.id}" onclick="this.classList.toggle('on')">${esc(u.nome||'—')}</div>`).join('');
+  Modal.open(`<div class="modal-h"><h3>${id?'Editar':'Novo'} paciente</h3><button class="x-btn" onclick="Modal.close()">✕</button></div>
+    <div class="avatar-pick"><div class="avatar-prev" id="pp_prev">${p?.foto_url?`<img src="${esc(p.foto_url)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:'<svg viewBox="0 0 24 24" width="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>'}</div>
+      <div style="flex:1"><label class="fld">Foto do paciente</label><input type="file" id="pp_foto" accept="image/*" onchange="Views.ppPrev(event)"></div></div>
+    <div class="grid g-2">
+      <div class="field"><label class="fld req">Nome</label><input id="pp_nome" value="${esc(p?.nome||'')}"></div>
+      <div class="field"><label class="fld">Data de nascimento</label><input type="date" id="pp_dob" value="${p?.data_nascimento||''}"></div>
+      <div class="field"><label class="fld">Idade</label><input type="number" id="pp_idade" value="${p?.idade||''}" placeholder="anos"></div>
+      <div class="field"><label class="fld">Diagnóstico informado</label><input id="pp_diag" value="${esc(p?.diagnostico||'')}"></div>
+      <div class="field"><label class="fld">Nome da mãe</label><input id="pp_mae" value="${esc(p?.nome_mae||'')}"></div>
+      <div class="field"><label class="fld">Nome do pai</label><input id="pp_pai" value="${esc(p?.nome_pai||'')}"></div>
+    </div>
+    <div class="field"><label class="fld">Observações</label><textarea id="pp_obs">${esc(p?.observacoes||'')}</textarea></div>
+    <div class="field"><label class="fld">Disciplinas clínicas atendidas <span style="color:var(--muted);font-weight:500">(várias)</span></label><div class="chips" id="pp_disc">${chipsDisc}</div></div>
+    <div class="field"><label class="fld">Profissionais que atendem <span style="color:var(--muted);font-weight:500">(vários)</span></label><div class="chips" id="pp_prof">${chipsProf||'<span style="color:var(--muted);font-size:13px">Cadastre/ative usuários primeiro.</span>'}</div></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+      <button class="btn btn-ghost" onclick="Modal.close()">Cancelar</button>
+      <button class="btn btn-primary" id="ppSave" onclick="Views.pacSave('${id||''}')">Salvar</button></div>`,true);
+};
+Views.ppPrev=(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{document.getElementById('pp_prev').innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;};r.readAsDataURL(f);};
+Views.pacSave=async(id)=>{
+  const nome=pp_nome.value.trim();if(!nome){toast('Informe o nome.','error');return;}
+  const btn=document.getElementById('ppSave');btn.disabled=true;btn.innerHTML='<span class="loader"></span>';
+  let foto_url=undefined;const file=pp_foto.files[0];
+  if(file){const path=`${Date.now()}_${file.name}`.replace(/\s+/g,'_');
+    const up=await sb.storage.from('pacientes').upload(path,file,{upsert:true});
+    if(!up.error)foto_url=sb.storage.from('pacientes').getPublicUrl(path).data.publicUrl;}
+  const rec={nome,data_nascimento:pp_dob.value||null,idade:pp_idade.value?parseInt(pp_idade.value):(ageFrom(pp_dob.value)||null),
+    diagnostico:pp_diag.value||null,nome_mae:pp_mae.value||null,nome_pai:pp_pai.value||null,observacoes:pp_obs.value||null,
+    criado_por:S.user.id,...(foto_url!==undefined?{foto_url}:{})};
+  let pid=id;
+  if(id){const r=await sb.from('pacientes').update(rec).eq('id',id).select().single();if(r.error){toast(r.error.message,'error');btn.disabled=false;btn.textContent='Salvar';return;}}
+  else{const r=await sb.from('pacientes').insert(rec).select().single();if(r.error){toast(r.error.message,'error');btn.disabled=false;btn.textContent='Salvar';return;}pid=r.data.id;}
+  // vínculos (substitui)
+  const discs=[...document.querySelectorAll('#pp_disc .chip.on')].map(c=>c.dataset.disc);
+  const profs=[...document.querySelectorAll('#pp_prof .chip.on')].map(c=>c.dataset.prof);
+  await sb.from('paciente_disciplinas').delete().eq('paciente_id',pid);
+  await sb.from('paciente_profissionais').delete().eq('paciente_id',pid);
+  if(discs.length)await sb.from('paciente_disciplinas').insert(discs.map(f=>({paciente_id:pid,funcao_id:f})));
+  if(profs.length)await sb.from('paciente_profissionais').insert(profs.map(p=>({paciente_id:pid,profissional_id:p})));
+  toast('Paciente salvo.','success');Modal.close();Views.pacientes();
+};
+Views.pacDel=(id,nome)=>confirmDel(`Excluir o paciente <b>${nome}</b>? Esta ação remove vínculos e não pode ser desfeita.`,async()=>{
+  const r=await guard(sb.from('pacientes').delete().eq('id',id));if(r!==null){toast('Paciente excluído.','success');Views.pacientes();}});
+
+/* ---------- USUÁRIOS & ACESSOS (admin) ---------- */
+Views.usuarios=async()=>{
+  loading();
+  const {data}=await sb.from('perfis').select('*').order('created_at');
+  S.usuarios=data||[];
+  setContent(`
+    <div class="notice info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      Libere o acesso, defina o papel e quem pode <b>ver todos os formulários</b>. Coordenadores e admins enxergam toda a clínica.</div>
+    <div class="card"><table class="tbl"><thead><tr><th>Usuário</th><th>Função</th><th>Papel</th><th>Ver todos</th><th>Acesso</th><th></th></tr></thead><tbody>
+    ${(data||[]).map(u=>`<tr>
+      <td><div class="who">${avatarHTML(u.foto_url,u.nome)}<div><b>${esc(u.nome||'—')}</b><div style="font-size:12px;color:var(--text-soft)">${esc(u.email||'')}</div></div></div></td>
+      <td style="font-size:13px">${esc(funcaoNome(u.funcao_id))}</td>
+      <td><select class="btn-sm" style="padding:7px" onchange="Views.setRole('${u.id}',this.value)" ${u.id===S.user.id?'disabled':''}>
+        ${['profissional','coordenador','admin'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${({profissional:'Profissional',coordenador:'Coordenador',admin:'Administrador'})[r]}</option>`).join('')}</select></td>
+      <td>${u.role==='admin'?'<span class="badge green">Sempre</span>':`<input type="checkbox" style="width:20px;height:20px" ${u.can_view_all?'checked':''} onchange="Views.setView('${u.id}',this.checked)">`}</td>
+      <td>${u.ativo?'<span class="badge green">Liberado</span>':'<span class="badge amber">Pendente</span>'}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn ${u.ativo?'btn-ghost':'btn-primary'} btn-sm" onclick="Views.setAtivo('${u.id}',${!u.ativo})">${u.ativo?'Bloquear':'Liberar'}</button>
+        ${u.id!==S.user.id?`<button class="btn btn-danger btn-sm" onclick="Views.userDel('${u.id}','${esc(u.nome||u.email)}')">Excluir</button>`:''}
+      </td></tr>`).join('')}
+    </tbody></table></div>`);
+};
+Views.setRole=async(id,role)=>{const r=await guard(sb.from('perfis').update({role}).eq('id',id).select().single());if(r){toast('Papel atualizado.','success');Views.usuarios();}};
+Views.setView=async(id,v)=>{await guard(sb.from('perfis').update({can_view_all:v}).eq('id',id).select().single());toast('Permissão atualizada.','success');};
+Views.setAtivo=async(id,v)=>{const r=await guard(sb.from('perfis').update({ativo:v}).eq('id',id).select().single());if(r){toast(v?'Acesso liberado.':'Acesso bloqueado.','success');Views.usuarios();}};
+Views.userDel=(id,nome)=>confirmDel(`Excluir o perfil de <b>${nome}</b>? O login do usuário permanecerá no Auth, mas perde o acesso ao sistema.`,async()=>{
+  const r=await guard(sb.from('perfis').delete().eq('id',id));if(r!==null){toast('Perfil excluído.','success');Views.usuarios();}});
+
+/* ---------- FUNÇÕES CLÍNICAS (admin) ---------- */
+Views.funcoes=async()=>{
+  loading();await loadFuncoes();
+  setContent(`
+    <div class="section-head"><h3>Funções clínicas</h3><div class="spacer"></div>
+      <div style="display:flex;gap:8px"><input id="nf_nome" placeholder="Ex.: Psicomotricista" style="width:240px"><button class="btn btn-primary" onclick="Views.funcAdd()">Adicionar</button></div></div>
+    <div class="card"><table class="tbl"><thead><tr><th>Função</th><th>Status</th><th></th></tr></thead><tbody>
+    ${S.funcoes.map(f=>`<tr><td><b>${esc(f.nome)}</b></td>
+      <td>${f.ativo?'<span class="badge green">Ativa</span>':'<span class="badge gray">Inativa</span>'}</td>
+      <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="Views.funcToggle('${f.id}',${!f.ativo})">${f.ativo?'Desativar':'Ativar'}</button>
+      <button class="btn btn-danger btn-sm" onclick="Views.funcDel('${f.id}','${esc(f.nome)}')">Excluir</button></td></tr>`).join('')}
+    </tbody></table></div>`);
+};
+Views.funcAdd=async()=>{const nome=nf_nome.value.trim();if(!nome)return;
+  const r=await guard(sb.from('funcoes_clinicas').insert({nome}).select().single());if(r){toast('Função adicionada.','success');Views.funcoes();}};
+Views.funcToggle=async(id,v)=>{await guard(sb.from('funcoes_clinicas').update({ativo:v}).eq('id',id));Views.funcoes();};
+Views.funcDel=(id,nome)=>confirmDel(`Excluir a função <b>${nome}</b>?`,async()=>{const r=await guard(sb.from('funcoes_clinicas').delete().eq('id',id));if(r!==null){toast('Função excluída.','success');Views.funcoes();}});
+
+/* ===================== START ===================== */
+sb.auth.onAuthStateChange((e)=>{ if(e==='PASSWORD_RECOVERY'){toast('Defina sua nova senha pelo link recebido.','info');} });
+AUTH.loadFuncoes();
+boot();
+</script>
+</body>
+</html>
