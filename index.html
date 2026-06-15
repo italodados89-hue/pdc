@@ -26,11 +26,18 @@
 html,body{height:100%}
 body{
   font-family:'Manrope',system-ui,sans-serif;color:var(--text);
+  /* background simples como fallback — o gradiente real fica no ::before fixo para evitar
+     corrupção de compositing layers causada pelo backdrop-filter do modal/overlay */
+  background:linear-gradient(160deg,var(--bg),var(--bg2));
+  min-height:100vh;position:relative;
+}
+/* Pseudo-elemento fixo para o gradiente de fundo — imune a backdrop-filter de descendentes */
+body::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:
     radial-gradient(1100px 600px at 12% -8%, #dbe7fb 0%, transparent 55%),
     radial-gradient(900px 600px at 110% 0%, #d6f0fb 0%, transparent 50%),
     linear-gradient(160deg,var(--bg),var(--bg2));
-  background-attachment:fixed;min-height:100vh;
 }
 h1,h2,h3,h4,.brand{font-family:'Plus Jakarta Sans',sans-serif}
 a{color:var(--accent);text-decoration:none}
@@ -467,7 +474,16 @@ function statusBadge(s){const x=STATUS[s]||{l:s,c:'gray'};return `<span class="b
 const Modal={
   open(html,lg=false){const o=document.getElementById('overlay'),m=document.getElementById('modal');
     m.className='modal'+(lg?' lg':'');m.innerHTML=html;o.classList.add('show');},
-  close(){document.getElementById('overlay').classList.remove('show');}
+  close(){
+    document.getElementById('overlay').classList.remove('show');
+    /* Após fechar o modal, o backdrop-filter do overlay pode deixar artefatos visuais
+       nos cards/glass do Kanban. Refresh silencioso (sem spinner) corrige isso. */
+    if(S.view==='kanban'){
+      requestAnimationFrame(()=>{
+        setTimeout(()=>{if(S.view==='kanban') Views.kanban(true);},120);
+      });
+    }
+  }
 };
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')Modal.close();});
 
@@ -1120,10 +1136,9 @@ const KCOLS=[
 ];
 function kStatusToCol(s){if(s==='enviado')return 'enviado';if(s==='em_geracao')return 'em_geracao';
   if(['gerado','em_revisao','aprovado','ajustes'].includes(s))return 'gerado';if(s==='finalizado')return 'finalizado';return null;}
-Views.kanban=async()=>{
-  loading();
-  // Reseta scroll e compositing layers para evitar desfiguração visual ao retornar de edição/detalhes
-  window.scrollTo(0,0);
+Views.kanban=async(silent=false)=>{
+  // silent=true: refresh sem spinner (usado após fechar modal para corrigir artefatos visuais)
+  if(!silent){loading();window.scrollTo(0,0);}
   let q=sb.from('formularios_conduta').select('*,pacientes(nome,foto_url),perfis:profissional_id(nome)').neq('status','rascunho').order('updated_at',{ascending:false});
   if(!can.viewAll())q=q.eq('profissional_id',S.user.id);
   const {data}=await q;
