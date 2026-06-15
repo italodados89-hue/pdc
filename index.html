@@ -408,7 +408,7 @@ const SUPABASE_URL      = 'https://fdyxdnrwwblxttzvltbg.supabase.co';        // 
 const SUPABASE_ANON_KEY = 'sb_publishable_fMGwWfRNK0oWvkfJ6ItVDg_PeECI7Xj';  // chave publishable (browser-safe)
 
 /* Webhook do n8n que gera o Protocolo de Conduta (preparação p/ próxima etapa) */
-const N8N_WEBHOOK_URL   = 'https://SEU-N8N/webhook/gerar-protocolo-pdc'; // <-- ajuste depois
+const N8N_WEBHOOK_URL   = 'https://primary-production-1e9c2.up.railway.app/webhook/gerar-protocolo-pdc';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -947,6 +947,8 @@ Views.kanban=async()=>{
   setContent(`
     ${can.viewAll()?'':'<div class="notice info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Você vê apenas seus próprios protocolos. A coordenação acompanha todos.</div>'}
     <div class="kanban">${cols}</div>`);
+  // Auto-atualização: enquanto houver cartões "em geração", recarrega o painel para captar o retorno da IA (status -> gerado).
+  Kan.autopoll(forms.some(f=>f.status==='em_geracao'));
 };
 function kcard(f){
   return `<div class="kcard" draggable="${can.viewAll()}" ondragstart="Kan.start(event,'${f.id}')" ondragend="Kan.end(event)">
@@ -955,8 +957,9 @@ function kcard(f){
     <div class="kact">
       <button class="btn btn-ghost btn-sm" onclick="Kan.detail('${f.id}')">Detalhes</button>
       ${can.admin()?`<button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">Editar</button>`:''}
-      ${f.status==='enviado'&&can.viewAll()?`<button class="btn btn-primary btn-sm" onclick="Kan.gerar('${f.id}')">Gerar protocolo</button>`:''}
-      ${['gerado','em_revisao','aprovado','ajustes'].includes(f.status)?`<button class="btn btn-ghost btn-sm" onclick="Kan.baixar('${f.id}')">Baixar .docx</button>`:''}
+      ${f.status==='enviado'&&can.viewAll()?`<button class="btn btn-primary btn-sm" onclick="Kan.toGeracao('${f.id}')">Enviar p/ IA</button>`:''}
+      ${f.status==='em_geracao'&&can.viewAll()?`<button class="btn btn-primary btn-sm" onclick="Kan.gerar('${f.id}')">Gerar Relatório (IA)</button>`:''}
+      ${['gerado','em_revisao','aprovado','ajustes','finalizado'].includes(f.status)?`<button class="btn btn-ghost btn-sm" onclick="Kan.baixar('${f.id}')">Baixar .docx</button>`:''}
       ${['gerado','em_revisao','aprovado'].includes(f.status)&&can.viewAll()?`<button class="btn btn-ghost btn-sm" onclick="Kan.move('${f.id}','finalizado')">Finalizar</button>`:''}
       ${can.admin()?`<button class="btn btn-danger btn-sm" onclick="Views.formDel('${f.id}','${esc(f.pacientes?.nome||'')}')">Excluir</button>`:''}
     </div>
@@ -964,32 +967,68 @@ function kcard(f){
 }
 const Kan={
   _drag:null,
+  _poll:null,
+  /* (Re)arma o polling: se há cartões em geração e o usuário está no Kanban, recarrega em 12s. Caso contrário, encerra. */
+  autopoll(active){
+    if(Kan._poll){clearTimeout(Kan._poll);Kan._poll=null;}
+    if(active && S.view==='kanban'){
+      Kan._poll=setTimeout(()=>{ if(S.view==='kanban') Views.kanban(); },12000);
+    }
+  },
   start(e,id){if(!can.viewAll())return;Kan._drag=id;e.target.classList.add('drag');},
   end(e){e.target.classList.remove('drag');document.querySelectorAll('.kcol').forEach(c=>c.classList.remove('dropok'));},
   over(e){if(!can.viewAll())return;e.preventDefault();e.currentTarget.classList.add('dropok');},
   leave(e){e.currentTarget.classList.remove('dropok');},
   async drop(e,col){e.preventDefault();e.currentTarget.classList.remove('dropok');if(!Kan._drag||!can.viewAll())return;
     const id=Kan._drag;Kan._drag=null;
-    if(col==='em_geracao'){await Kan.gerar(id);return;}
+    // Arrastar para a coluna de IA apenas move o status; a geração é disparada pelo botão "Gerar Relatório (IA)".
+    if(col==='em_geracao'){await Kan.move(id,'em_geracao');return;}
     const map={enviado:'enviado',gerado:'em_revisao',finalizado:'finalizado'};
     await Kan.move(id,map[col]||col);},
   async move(id,status){const r=await guard(sb.from('formularios_conduta').update({status}).eq('id',id).select().single());
     if(r){toast('Status atualizado.','success');Views.kanban();}},
+  /* Etapa 1 — ADM move o cartão de "Enviados" para a coluna "Gerar Protocolo (IA)" (somente status). */
+  async toGeracao(id){const r=await guard(sb.from('formularios_conduta').update({status:'em_geracao'}).eq('id',id).select().single());
+    if(r){toast('Cartão movido para "Gerar Protocolo (IA)". Clique em "Gerar Relatório (IA)".','info',5000);Views.kanban();}},
+  /* Etapa 2 — Dispara o webhook do n8n (AI Agent OpenAI). O n8n é stateless: a IA pensa e devolve o protocolo
+     pronto (HTML leve + texto). O PRÓPRIO sistema grava em protocolos_gerados e muda o status p/ "gerado"
+     (usuário autenticado, RLS). Nada pesado é salvo no Supabase; o .docx é gerado no navegador ao baixar. */
+  _busy:false,
   async gerar(id){
-    // 1. marca em_geracao  2. dispara webhook n8n (preparação)
-    await guard(sb.from('formularios_conduta').update({status:'em_geracao'}).eq('id',id).select().single());
+    if(Kan._busy)return;
+    if(!N8N_WEBHOOK_URL || N8N_WEBHOOK_URL.includes('SEU-N8N')){
+      toast('Configure a URL do webhook do n8n (const N8N_WEBHOOK_URL) para gerar o protocolo.','error',6000);return;
+    }
+    Kan._busy=true;
+    toast('Gerando protocolo com a IA… isso pode levar até 1 minuto.','info',8000);
     const {data:f}=await sb.from('formularios_conduta').select('*,pacientes(*)').eq('id',id).single();
     const payload={ event:'gerar_protocolo_pdc', formulario_id:id, paciente:f?.pacientes||null,
-      modelo_escolhido:f?.modelo_escolhido, dados:f, solicitado_por:S.perfil.nome, ts:new Date().toISOString() };
+      modelo_escolhido:f?.modelo_escolhido, dados:f, solicitado_por:S.perfil?.nome, ts:new Date().toISOString() };
     try{
-      if(N8N_WEBHOOK_URL && !N8N_WEBHOOK_URL.includes('SEU-N8N')){
-        await fetch(N8N_WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        toast('Enviado ao n8n para geração do protocolo.','success');
-      }else{
-        toast('Cartão movido. Configure o webhook do n8n para gerar automaticamente.','info',5000);
-      }
-    }catch(err){toast('Falha ao chamar o n8n: '+err.message,'error');}
-    Views.kanban();
+      const resp=await fetch(N8N_WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
+      const data=await resp.json();
+      if(!data || !data.protocolo_html) throw new Error('Resposta da IA sem protocolo.');
+      // grava o protocolo retornado (RLS: ADM/coordenação)
+      const ins=await sb.from('protocolos_gerados').insert({
+        formulario_id:id,
+        paciente_id:data.paciente_id||f?.paciente_id||null,
+        modelo_protocolo:data.modelo||f?.modelo_escolhido||null,
+        justificativa_modelo:data.justificativa||null,
+        protocolo_html:data.protocolo_html,
+        protocolo_texto:data.protocolo_texto||null,
+        status_revisao:'gerado'
+      });
+      if(ins.error)throw new Error(ins.error.message);
+      await sb.from('formularios_conduta').update({status:'gerado'}).eq('id',id);
+      try{ await sb.from('logs_ia').insert({formulario_id:id,modelo_llm:'gpt-4.1-mini',status:'sucesso'}); }catch(_e){}
+      toast('Protocolo gerado! Disponível em "Gerado · Revisar".','success');
+    }catch(err){
+      toast('Falha ao gerar pela IA: '+err.message,'error',7000);
+    }finally{
+      Kan._busy=false;
+      Views.kanban();
+    }
   },
   async detail(id){
     const {data:f}=await sb.from('formularios_conduta').select('*,pacientes(nome),perfis:profissional_id(nome)').eq('id',id).single();
@@ -1015,11 +1054,17 @@ const Kan={
 };
 function docxHTML(f,prot){
   const p=f.pacientes||{};
-  if(prot&&(prot.protocolo_html||prot.protocolo_texto)){
+  if(prot&&prot.protocolo_html){
+    const ph=prot.protocolo_html.trim();
+    // n8n já devolve um documento completo e estilizado (com logos) — usa direto.
+    if(/^<!doctype/i.test(ph)||/^<html/i.test(ph))return prot.protocolo_html;
+    return `<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial">${prot.protocolo_html}</body></html>`;
+  }
+  if(prot&&prot.protocolo_texto){
     return `<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial">
       <h2>Protocolo de Conduta Comportamental (ABA)</h2>
       <p><b>Paciente:</b> ${esc(p.nome||'')} &nbsp; <b>Modelo:</b> ${esc(prot.modelo_protocolo||f.modelo_escolhido||'')}</p>
-      <hr>${prot.protocolo_html||('<p>'+esc(prot.protocolo_texto).replace(/\n/g,'<br>')+'</p>')}</body></html>`;
+      <hr><p>${esc(prot.protocolo_texto).replace(/\n/g,'<br>')}</p></body></html>`;
   }
   // fallback: estrutura a partir do formulário
   const sec=SCHEMA.map(b=>`<h3>${b.n}. ${esc(b.t)}</h3>`+b.f.map(x=>`<p><b>${esc(x.l)}:</b> ${esc(fmtVal(x,f[x.k]))||'Informação não fornecida no formulário.'}</p>`).join('')).join('');
