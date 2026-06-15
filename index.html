@@ -289,6 +289,32 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .day-cell span{font-size:11px;font-weight:700;color:var(--text-soft);text-align:center}
 .day-cell input{padding:8px 8px;text-align:center}
 @media(max-width:680px){.day-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* ---------- painel de formulários ---------- */
+.pf-prof{background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:var(--blur);
+  -webkit-backdrop-filter:var(--blur);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:20px 22px;margin-bottom:18px}
+.pf-prof-hd{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.pf-prof-hd .ic{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent);flex:none}
+.pf-prof-hd .ic svg{width:20px;height:20px}
+.pf-prof-hd b{font-size:15.5px;display:block;font-family:'Plus Jakarta Sans'}
+.pf-prof-hd span{font-size:12.5px;color:var(--text-soft)}
+.pf-pac{margin-bottom:14px;background:rgba(255,255,255,.55);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.pf-pac-hd{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.6);
+  border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.pf-pac-hd svg{width:16px;height:16px;color:var(--accent);flex:none}
+.pf-pac-hd b{font-size:13.5px;font-family:'Plus Jakarta Sans';flex:1}
+.pf-pac-hd .cnt2{font-size:11.5px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.8);border-radius:20px;padding:2px 9px}
+.pf-pac-body{padding:0 8px 8px}
+.pf-search{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.pf-search input,.pf-search select{max-width:220px}
+.pf-filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.pf-stat{padding:16px 20px}
+.pf-stat .n{font-size:26px;font-weight:800;font-family:'Plus Jakarta Sans';line-height:1}
+.pf-stat .l{font-size:12px;color:var(--text-soft);margin-top:5px;font-weight:600}
+.pf-stat .ic{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent);margin-bottom:10px}
+.pf-stat .ic svg{width:18px;height:18px}
+.pf-empty{text-align:center;padding:22px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -368,6 +394,8 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>Meus formulários</div>
     <div class="nav-item" data-view="kanban" onclick="UI.go('kanban')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="6" height="18" rx="1"/><rect x="9.5" y="3" width="6" height="12" rx="1"/><rect x="16" y="3" width="5" height="9" rx="1"/></svg>Painel de Protocolos</div>
+    <div class="nav-item" data-view="painel" onclick="UI.go('painel')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Painel de Formulários</div>
 
     <div class="nav-sep adm-only">Administração</div>
     <div class="nav-item adm-only" data-view="pacientes" onclick="UI.go('pacientes')">
@@ -589,6 +617,7 @@ function renderMe(){
 /* ===================== UI / ROUTER ===================== */
 const TITLES={home:['Início','Visão geral da clínica'],novo:['Novo formulário','Selecione o paciente e preencha o protocolo'],
   meus:['Meus formulários','Acompanhe seus preenchimentos'],kanban:['Painel de Protocolos','Fluxo de geração e revisão (Kanban)'],
+  painel:['Painel de Formulários','Histórico categorizado por profissional e paciente'],
   pacientes:['Pacientes','Cadastro e gestão de pacientes'],usuarios:['Usuários & Acessos','Libere acessos, papéis e permissões'],
   funcoes:['Funções clínicas','Defina as funções da equipe']};
 const UI={
@@ -599,7 +628,7 @@ const UI={
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===view));
     const [t,s]=TITLES[view]||['',''];pgTitle.textContent=t;pgSub.textContent=s;
     if(window.innerWidth<=980){document.getElementById('sidebar').classList.remove('open');document.getElementById('mobOv').classList.remove('show');}
-    ({home:Views.home,novo:Views.novo,meus:Views.meus,kanban:Views.kanban,
+    ({home:Views.home,novo:Views.novo,meus:Views.meus,kanban:Views.kanban,painel:Views.painelForms,
       pacientes:Views.pacientes,usuarios:Views.usuarios,funcoes:Views.funcoes}[view])();
   }
 };
@@ -923,6 +952,165 @@ Views.formDel=(id,nome)=>{
   });
 };
 
+/* ---------- PAINEL DE FORMULÁRIOS ---------- */
+Views.painelForms=async()=>{
+  loading();
+  window.scrollTo(0,0);
+  let q=sb.from('formularios_conduta')
+    .select('id,status,modelo_escolhido,created_at,updated_at,paciente_id,profissional_id,pacientes(nome),perfis:profissional_id(nome,id)')
+    .order('created_at',{ascending:false});
+  if(!can.viewAll()) q=q.eq('profissional_id',S.user.id);
+  const {data,error}=await q;
+  if(error){setContent(`<div class="notice warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>${esc(error.message)}</div>`);return;}
+  const forms=data||[];
+
+  /* ---- stats gerais ---- */
+  const totalForms=forms.length;
+  const totalPacs=new Set(forms.map(f=>f.paciente_id).filter(Boolean)).size;
+  const byStatus={};forms.forEach(f=>{byStatus[f.status]=(byStatus[f.status]||0)+1;});
+
+  /* ---- agrupamento por profissional ---- */
+  const byProf={};
+  forms.forEach(f=>{
+    const pk=f.profissional_id||'__sem__';
+    const pn=f.perfis?.nome||'Profissional não identificado';
+    if(!byProf[pk])byProf[pk]={nome:pn,forms:[]};
+    byProf[pk].forms.push(f);
+  });
+  const totalProfs=Object.keys(byProf).length;
+
+  /* ---- helper: linha de form ---- */
+  const frow=f=>`<tr>
+    <td style="font-size:13px;color:var(--text-soft);white-space:nowrap">${fmtDate(f.created_at).split(' ')[0]}</td>
+    <td>${f.modelo_escolhido?`<span class="badge blue" style="font-size:11px">${esc(f.modelo_escolhido)}</span>`:'<span style="color:var(--muted);font-size:13px">—</span>'}</td>
+    <td>${statusBadge(f.status)}</td>
+    <td style="font-size:12px;color:var(--text-soft)">${fmtDate(f.updated_at).split(' ')[0]}</td>
+    <td style="text-align:right">
+      <button class="btn btn-ghost btn-sm" onclick="Kan.detail('${f.id}')">Ver</button>
+    </td>
+  </tr>`;
+
+  /* ---- bloco por profissional ---- */
+  const profBlocks=Object.entries(byProf).map(([pk,pg])=>{
+    /* agrupar pacientes dentro do profissional */
+    const byPac={};
+    pg.forms.forEach(f=>{
+      const pacNome=f.pacientes?.nome||'Paciente não identificado';
+      const pacKey=f.paciente_id||'__sp__';
+      if(!byPac[pacKey])byPac[pacKey]={nome:pacNome,forms:[]};
+      byPac[pacKey].forms.push(f);
+    });
+    const totalPacsProf=Object.keys(byPac).length;
+
+    const pacBlocks=Object.entries(byPac).map(([pacKey,pac])=>{
+      const uid=`pf_${pk.replace(/[^a-z0-9]/gi,'_')}_${pacKey.replace(/[^a-z0-9]/gi,'_')}`;
+      return `<div class="pf-pac">
+        <div class="pf-pac-hd" onclick="document.getElementById('${uid}').classList.toggle('hidden')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <b>${esc(pac.nome)}</b>
+          <span class="cnt2">${pac.forms.length} formulário${pac.forms.length>1?'s':''}</span>
+        </div>
+        <div id="${uid}" class="pf-pac-body">
+          <table class="tbl" style="border-spacing:0 4px;margin-top:4px">
+            <thead><tr>
+              <th>Criado em</th><th>Modelo</th><th>Status</th><th>Última atualiz.</th><th></th>
+            </tr></thead>
+            <tbody>${pac.forms.map(f=>frow(f)).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="pf-prof">
+      <div class="pf-prof-hd">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div style="flex:1">
+          <b>${esc(pg.nome)}</b>
+          <span>${pg.forms.length} formulário${pg.forms.length>1?'s':''} &nbsp;·&nbsp; ${totalPacsProf} paciente${totalPacsProf>1?'s':''}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${Object.entries(byStatus).filter(([s])=>pg.forms.some(f=>f.status===s)).map(([s,])=>{
+            const cnt=pg.forms.filter(f=>f.status===s).length;
+            return statusBadge(s).replace('</span>',` (${cnt})</span>`);
+          }).join('')}
+        </div>
+      </div>
+      ${pacBlocks||'<div class="pf-empty">Sem pacientes vinculados.</div>'}
+    </div>`;
+  }).join('');
+
+  /* ---- status summary pill list ---- */
+  const statusSummary=Object.entries(byStatus).map(([s,n])=>
+    statusBadge(s).replace('</span>',` · ${n}</span>`)
+  ).join(' ');
+
+  const notice=can.viewAll()
+    ?`<div class="notice info" style="margin-bottom:18px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span><b>Visão ADM ativada.</b> Você está vendo formulários de todos os profissionais da clínica. Cada profissional vê somente os seus próprios registros.</span></div>`
+    :`<div class="notice info" style="margin-bottom:18px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Você está visualizando <b>apenas seus próprios formulários</b>. Outros profissionais não têm acesso a estes dados.</span></div>`;
+
+  const statsHTML=`<div class="grid ${can.viewAll()?'g-3':'g-2'}" style="margin-bottom:22px">
+    <div class="card pf-stat">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+      <div class="n">${totalForms}</div>
+      <div class="l">Total de formulários</div>
+    </div>
+    <div class="card pf-stat">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/><path d="M17 8l2 2 4-4"/></svg></div>
+      <div class="n">${totalPacs}</div>
+      <div class="l">Pacientes atendidos</div>
+    </div>
+    ${can.viewAll()?`<div class="card pf-stat">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="n">${totalProfs}</div>
+      <div class="l">Profissionais com formulários</div>
+    </div>`:''}
+  </div>`;
+
+  const emptyHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><b>Nenhum formulário encontrado</b><p>${can.viewAll()?'Ainda não há formulários cadastrados no sistema.':'Você ainda não preencheu nenhum formulário.'}</p></div>`;
+
+  if(!totalForms){setContent(`${notice}${statsHTML}${emptyHTML}`);return;}
+
+  /* ---- barra de busca global ---- */
+  const searchBar=`<div class="pf-search" style="margin-bottom:20px">
+    <input type="text" id="pf_busca" placeholder="🔍  Buscar por paciente ou profissional…" oninput="_pfFiltrar()" style="flex:1;min-width:200px;max-width:100%">
+    <select id="pf_status" onchange="_pfFiltrar()" style="max-width:180px">
+      <option value="">Todos os status</option>
+      ${Object.keys(STATUS).map(s=>`<option value="${s}">${STATUS[s].l}</option>`).join('')}
+    </select>
+  </div>`;
+
+  setContent(`${notice}${statsHTML}${searchBar}<div id="pf_lista">${profBlocks||emptyHTML}</div>`);
+
+  /* ---- filtro client-side ---- */
+  window._pfFiltrar=function(){
+    const busca=(document.getElementById('pf_busca').value||'').toLowerCase().trim();
+    const filSt=document.getElementById('pf_status').value;
+    const lista=document.getElementById('pf_lista');
+    if(!busca&&!filSt){lista.innerHTML=profBlocks||emptyHTML;return;}
+    /* filtra in-memory sobre o array de forms já carregado */
+    const filtered=forms.filter(f=>{
+      const matchBusca=!busca||(f.pacientes?.nome||'').toLowerCase().includes(busca)||(f.perfis?.nome||'').toLowerCase().includes(busca);
+      const matchSt=!filSt||f.status===filSt;
+      return matchBusca&&matchSt;
+    });
+    if(!filtered.length){lista.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><b>Nenhum resultado</b><p>Tente outro termo de busca ou remova o filtro.</p></div>';return;}
+    const bProf={};
+    filtered.forEach(f=>{const pk=f.profissional_id||'__sem__';const pn=f.perfis?.nome||'Profissional não identificado';if(!bProf[pk])bProf[pk]={nome:pn,forms:[]};bProf[pk].forms.push(f);});
+    lista.innerHTML=Object.entries(bProf).map(([pk,pg])=>{
+      const bPac={};
+      pg.forms.forEach(f=>{const pn=f.pacientes?.nome||'Paciente não identificado';const pacKey=f.paciente_id||'__sp__';if(!bPac[pacKey])bPac[pacKey]={nome:pn,forms:[]};bPac[pacKey].forms.push(f);});
+      const pacBlk=Object.entries(bPac).map(([,pac])=>`<div class="pf-pac" style="margin-bottom:8px">
+        <div class="pf-pac-hd" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <b>${esc(pac.nome)}</b><span class="cnt2">${pac.forms.length}</span></div>
+        <div class="pf-pac-body"><table class="tbl" style="border-spacing:0 4px;margin-top:4px"><thead><tr><th>Criado em</th><th>Modelo</th><th>Status</th><th>Última atualiz.</th><th></th></tr></thead><tbody>${pac.forms.map(f=>frow(f)).join('')}</tbody></table></div>
+      </div>`).join('');
+      return `<div class="pf-prof"><div class="pf-prof-hd"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div style="flex:1"><b>${esc(pg.nome)}</b><span>${pg.forms.length} formulário${pg.forms.length>1?'s':''}</span></div></div>${pacBlk}</div>`;
+    }).join('');
+  };
+};
+
 /* ---------- KANBAN ---------- */
 const KCOLS=[
   {key:'enviado',l:'Enviados',hint:'Aguardando geração'},
@@ -934,6 +1122,8 @@ function kStatusToCol(s){if(s==='enviado')return 'enviado';if(s==='em_geracao')r
   if(['gerado','em_revisao','aprovado','ajustes'].includes(s))return 'gerado';if(s==='finalizado')return 'finalizado';return null;}
 Views.kanban=async()=>{
   loading();
+  // Reseta scroll e compositing layers para evitar desfiguração visual ao retornar de edição/detalhes
+  window.scrollTo(0,0);
   let q=sb.from('formularios_conduta').select('*,pacientes(nome,foto_url),perfis:profissional_id(nome)').neq('status','rascunho').order('updated_at',{ascending:false});
   if(!can.viewAll())q=q.eq('profissional_id',S.user.id);
   const {data}=await q;
@@ -944,9 +1134,13 @@ Views.kanban=async()=>{
       <div class="kcol-h"><b>${c.l}</b><span class="cnt">${items.length}</span></div>
       ${items.map(f=>kcard(f)).join('')||`<div style="font-size:12.5px;color:var(--muted);text-align:center;padding:14px">${c.hint}</div>`}
     </div>`;}).join('');
-  setContent(`
+  const _kanHTML=`
     ${can.viewAll()?'':'<div class="notice info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Você vê apenas seus próprios protocolos. A coordenação acompanha todos.</div>'}
-    <div class="kanban">${cols}</div>`);
+    <div class="kanban">${cols}</div>`;
+  // Força limpeza e repintura completa do conteúdo para eliminar artefatos visuais de backdrop-filter
+  const _ct=document.getElementById('content');
+  _ct.innerHTML='';void _ct.offsetHeight;
+  setContent(_kanHTML);
   // Auto-atualização: enquanto houver cartões "em geração", recarrega o painel para captar o retorno da IA (status -> gerado).
   Kan.autopoll(forms.some(f=>f.status==='em_geracao'));
 };
@@ -972,7 +1166,7 @@ const Kan={
   autopoll(active){
     if(Kan._poll){clearTimeout(Kan._poll);Kan._poll=null;}
     if(active && S.view==='kanban'){
-      Kan._poll=setTimeout(()=>{ if(S.view==='kanban') Views.kanban(); },12000);
+      Kan._poll=setTimeout(()=>{ if(S.view==='kanban') Views.kanban(); },140000);
     }
   },
   start(e,id){if(!can.viewAll())return;Kan._drag=id;e.target.classList.add('drag');},
