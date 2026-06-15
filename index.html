@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PDC Clínico — Protocolo de Conduta Comportamental (ABA)</title>
+<title>MAPA-C — Monitoramento, Análise e Planejamento para Ajustes Comportamentais</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -296,7 +296,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
   <div class="auth-card glass">
     <div class="auth-logo">
       <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3 3 3 0 0 0 .5 1.65A3 3 0 0 0 6 16a3 3 0 0 0 3 3 3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3-3 3 3 0 0 0-.5-4.35A3 3 0 0 0 18 6a3 3 0 0 0-3-3 3 3 0 0 0-3-1Z"/><path d="M12 6v14"/></svg></div>
-      <div class="brand">PDC Clínico<small>PROTOCOLO DE CONDUTA · ABA</small></div>
+      <div class="brand">MAPA-C<small>MONITORAMENTO, ANÁLISE E PLANEJAMENTO · ABA</small></div>
     </div>
 
     <!-- tabs -->
@@ -353,7 +353,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
   <aside class="sidebar" id="sidebar">
     <div class="side-brand">
       <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3 3 3 0 0 0 .5 1.65A3 3 0 0 0 6 16a3 3 0 0 0 3 3 3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3-3 3 3 0 0 0-.5-4.35A3 3 0 0 0 18 6a3 3 0 0 0-3-3 3 3 0 0 0-3-1Z"/></svg></div>
-      <div><b>PDC Clínico</b><small>Análise do Comportamento</small></div>
+      <div><b>MAPA-C</b><small>Ajustes Comportamentais · ABA</small></div>
     </div>
     <div class="nav-item" data-view="home" onclick="UI.go('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/></svg>Início</div>
@@ -899,7 +899,7 @@ Views.meus=async()=>{
       <td>${f.modelo_escolhido?`<span class="badge">${f.modelo_escolhido}</span>`:'—'}</td>
       <td>${statusBadge(f.status)}</td>
       <td style="color:var(--text-soft);font-size:13px">${fmtDate(f.updated_at)}</td>
-      <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">${f.status==='rascunho'?'Editar':'Ver'}</button></td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">${(f.status==='rascunho'||can.admin())?'Editar':'Ver'}</button>${can.admin()?`<button class="btn btn-danger btn-sm" onclick="Views.formDel('${f.id}','${esc(f.pacientes?.nome||'')}')">Excluir</button>`:''}</td>
     </tr>`).join('')}
   </tbody></table></div>`);
 };
@@ -908,6 +908,14 @@ Views.editForm=async(id)=>{
   if(!f)return;
   S.pacientes=S.pacientes.length?S.pacientes:(await sb.from('pacientes').select('*')).data||[];
   await Views.abrirForm(f.paciente_id,f);
+};
+/* Exclusão de formulário — exclusiva do ADM (dono do sistema). Cascateia o protocolo gerado vinculado. */
+Views.formDel=(id,nome)=>{
+  if(!can.admin()){toast('Apenas o administrador pode excluir formulários.','error');return;}
+  confirmDel(`Excluir o formulário de <b>${nome||'paciente'}</b>? Esta ação remove também o protocolo gerado vinculado e não pode ser desfeita.`,async()=>{
+    const r=await guard(sb.from('formularios_conduta').delete().eq('id',id));
+    if(r!==null){toast('Formulário excluído.','success');(S.view==='kanban'?Views.kanban():Views.meus());}
+  });
 };
 
 /* ---------- KANBAN ---------- */
@@ -941,9 +949,11 @@ function kcard(f){
     <div class="meta">Modelo: <b>${f.modelo_escolhido||'—'}</b><br>Prof.: ${esc(f.perfis?.nome||'—')}<br>${statusBadge(f.status)}</div>
     <div class="kact">
       <button class="btn btn-ghost btn-sm" onclick="Kan.detail('${f.id}')">Detalhes</button>
+      ${can.admin()?`<button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">Editar</button>`:''}
       ${f.status==='enviado'&&can.viewAll()?`<button class="btn btn-primary btn-sm" onclick="Kan.gerar('${f.id}')">Gerar protocolo</button>`:''}
       ${['gerado','em_revisao','aprovado','ajustes'].includes(f.status)?`<button class="btn btn-ghost btn-sm" onclick="Kan.baixar('${f.id}')">Baixar .docx</button>`:''}
       ${['gerado','em_revisao','aprovado'].includes(f.status)&&can.viewAll()?`<button class="btn btn-ghost btn-sm" onclick="Kan.move('${f.id}','finalizado')">Finalizar</button>`:''}
+      ${can.admin()?`<button class="btn btn-danger btn-sm" onclick="Views.formDel('${f.id}','${esc(f.pacientes?.nome||'')}')">Excluir</button>`:''}
     </div>
   </div>`;
 }
@@ -1014,7 +1024,7 @@ function docxHTML(f,prot){
     <b>Mãe:</b> ${esc(p.nome_mae||'—')} &nbsp; <b>Pai:</b> ${esc(p.nome_pai||'—')}<br>
     <b>Profissional:</b> ${esc(f.perfis?.nome||'—')}<br>
     <b>Modelo escolhido:</b> ${esc(f.modelo_escolhido||'—')}</p><hr>${sec}
-    <hr><p><i>Documento gerado pelo Sistema PDC Clínico. Sujeito à revisão e aprovação da coordenação.</i></p></body></html>`;
+    <hr><p><i>Documento gerado pelo Sistema MAPA-C — Monitoramento, Análise e Planejamento para Ajustes Comportamentais. Sujeito à revisão e aprovação da coordenação.</i></p></body></html>`;
 }
 
 /* ---------- PACIENTES (admin) ---------- */
