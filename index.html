@@ -278,6 +278,12 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
   .tbl tr td:first-child{border-radius:11px 11px 0 0!important}
   .tbl tr td:last-child{border-radius:0 0 11px 11px!important}
 }
+
+.day-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:4px}
+.day-cell{display:flex;flex-direction:column;gap:3px}
+.day-cell span{font-size:11px;font-weight:700;color:var(--text-soft);text-align:center}
+.day-cell input{padding:8px 8px;text-align:center}
+@media(max-width:680px){.day-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
@@ -597,48 +603,148 @@ function loading(){setContent('<div class="center-load"><span class="loader dark
 
 /* ===================== FORM SCHEMA (ABA) ===================== */
 const SCHEMA=[
- {n:1,t:'Motivo da solicitação do protocolo',d:'Por que este protocolo está sendo solicitado?',f:[
-   {k:'motivo_protocolo',l:'Motivo / contexto da solicitação',type:'textarea'}]},
- {n:2,t:'Comportamento-alvo',d:'Comportamento prioritário a ser trabalhado',f:[
-   {k:'comportamento_alvo',l:'Descreva o comportamento-alvo',type:'textarea'}]},
- {n:3,t:'Definição operacional',d:'Descrição observável e mensurável',f:[
-   {k:'descricao_operacional',l:'Definição operacional do comportamento',type:'textarea'}]},
- {n:4,t:'Frequência, duração e intensidade',d:'Dados objetivos do comportamento',f:[
-   {k:'frequencia',l:'Frequência',type:'text',ph:'Ex.: 5x ao dia'},
-   {k:'duracao',l:'Duração',type:'text',ph:'Ex.: 2 a 10 min por episódio'},
-   {k:'intensidade',l:'Intensidade',type:'select',opt:['Leve','Moderada','Alta','Muito alta']}]},
- {n:5,t:'Contextos clínicos de ocorrência',d:'Onde/quando ocorre',f:[
-   {k:'contextos',l:'Contextos e situações em que o comportamento ocorre',type:'textarea'}]},
- {n:6,t:'Levantamento ABC',d:'Antecedente · Comportamento · Consequência',f:[
-   {k:'antecedentes',l:'Antecedentes (A)',type:'textarea'},
-   {k:'comportamento',l:'Comportamento (B)',type:'textarea'},
-   {k:'consequencias',l:'Consequências (C)',type:'textarea'}]},
- {n:7,t:'Hipótese funcional',d:'Função provável do comportamento',f:[
-   {k:'hipotese_funcional',l:'Hipótese funcional',type:'textarea'}]},
- {n:8,t:'Avaliação de risco',d:'Riscos clínicos identificados',f:[
-   {k:'risco_clinico',l:'Riscos (físico, autolesão, fuga, etc.)',type:'textarea'}]},
- {n:9,t:'Repertórios da criança',d:'Habilidades atuais / déficits',f:[
-   {k:'repertorios',l:'Repertórios e déficits de repertório',type:'textarea'}]},
- {n:10,t:'Comunicação funcional',d:'Como a criança se comunica',f:[
-   {k:'comunicacao_funcional',l:'Comunicação funcional atual',type:'textarea'}]},
- {n:11,t:'Estratégias já utilizadas',d:'O que já foi tentado',f:[
-   {k:'estrategias_utilizadas',l:'Estratégias anteriores e resultados',type:'textarea'}]},
- {n:12,t:'Reforçadores identificados',d:'O que motiva a criança',f:[
-   {k:'reforcadores',l:'Reforçadores',type:'textarea'}]},
- {n:13,t:'Objetivos da intervenção',d:'Metas terapêuticas',f:[
-   {k:'objetivos_intervencao',l:'Objetivos',type:'textarea'}]},
- {n:14,t:'Comportamentos substitutivos',d:'Comportamentos a serem ensinados',f:[
-   {k:'comportamento_substitutivo',l:'Comportamentos substitutivos desejados',type:'textarea'}]},
- {n:15,t:'Orientações para a equipe clínica',d:'Condutas para a equipe',f:[
-   {k:'orientacoes_equipe',l:'Orientações para a equipe',type:'textarea'}]},
- {n:16,t:'Orientações para a família',d:'Condutas para os responsáveis',f:[
-   {k:'orientacoes_familia',l:'Orientações para a família',type:'textarea'}]},
- {n:17,t:'Dados objetivos / anexos',d:'Registros, gráficos, observações objetivas',f:[
-   {k:'dados_objetivos',l:'Dados objetivos',type:'textarea'}]},
- {n:18,t:'Impressão clínica do profissional',d:'Análise qualitativa',f:[
-   {k:'impressao_clinica',l:'Impressão clínica',type:'textarea'}]},
+ {n:1,t:"Identificação e contexto clínico",f:[
+   {"k": "q1", "l": "Nome da criança/paciente", "type": "text", "hint": "Preencher nome completo ou identificação interna."},
+   {"k": "q2", "l": "Idade", "type": "text", "hint": "Informar idade atual."},
+   {"k": "q3", "l": "Data de nascimento", "type": "text", "hint": "Formato sugerido: dd/mm/aaaa."},
+   {"k": "q4", "l": "Diagnóstico(s), se houver", "type": "textarea", "hint": "Informar diagnóstico clínico ou hipótese, quando disponível."},
+   {"k": "q5", "l": "Uso de medicação atualmente?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever no campo resposta."},
+   {"k": "q6", "l": "Houve alteração medicamentosa nos últimos 30 dias?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever qual alteração."},
+   {"k": "q7", "l": "Terapeuta responsável pelo preenchimento", "type": "text", "hint": "Nome do profissional que realizou o levantamento."},
+   {"k": "q8", "l": "Profissionais envolvidos no caso", "type": "multi", "opt": ["Psicologia/ABA", "Terapia Ocupacional", "Fonoaudiologia", "Psicopedagogia", "Fisioterapia", "Coordenação clínica", "Outro"], "hint": "Selecionar todos que participam da rotina clínica."},
+   {"k": "q9", "l": "Contextos clínicos em que o comportamento ocorre", "type": "multi", "opt": ["Sala de atendimento individual", "Grupo terapêutico", "Recepção", "Corredor/transição", "Espera", "AVDs", "Alimentação", "Brincadeira livre", "Atividade dirigida", "Troca de terapeuta", "Mais de um contexto"], "hint": "Selecionar todos os contextos relevantes."},
+ ]},
+ {n:2,t:"Motivo da solicitação",f:[
+   {"k": "q10", "l": "Qual o principal motivo para solicitar o PDC?", "type": "textarea", "hint": "Descrever a queixa principal que motivou o protocolo."},
+   {"k": "q11", "l": "Quem solicitou o PDC?", "type": "select", "opt": ["Terapeuta", "Coordenação clínica", "Família", "Equipe multidisciplinar", "Outro"], "hint": "Selecionar o solicitante principal."},
+   {"k": "q12", "l": "O comportamento interfere principalmente em quais áreas?", "type": "multi", "opt": ["Segurança", "Aprendizagem", "Participação na terapia", "Transições", "Comunicação", "Interação social", "Rotina clínica", "Permanência em atividade", "Relação com terapeutas"], "hint": "Selecionar as áreas mais afetadas."},
+   {"k": "q13", "l": "Há quanto tempo o comportamento ocorre?", "type": "select", "opt": ["Menos de 1 mês", "1 a 3 meses", "3 a 6 meses", "Mais de 6 meses", "Não sei informar"], "hint": "Selecionar tempo aproximado."},
+   {"k": "q14", "l": "Houve piora recente?", "type": "multi", "opt": ["Não", "Sim, em frequência", "Sim, em intensidade", "Sim, em duração", "Sim, em risco", "Sim, em mais de um aspecto"], "hint": "Selecionar conforme observação clínica."},
+ ]},
+ {n:3,t:"Comportamentos-problema",f:[
+   {"k": "q15", "l": "Liste até 3 comportamentos-problema principais", "type": "textarea", "hint": "Exemplo: gritos, tapas, fuga, jogar objetos, recusa, choro intenso."},
+   {"k": "q16", "l": "Comportamento 1: descreva exatamente o que a criança faz", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva."},
+   {"k": "q17", "l": "Comportamento 1: o que conta como ocorrência?", "type": "textarea", "hint": "Definir o início, o fim e exemplos claros."},
+   {"k": "q18", "l": "Comportamento 1: o que NÃO conta como ocorrência?", "type": "textarea", "hint": "Evitar registro incorreto."},
+   {"k": "q19", "l": "Comportamento 2: descreva exatamente o que a criança faz", "type": "textarea", "hint": "Preencher se houver segundo comportamento-alvo."},
+   {"k": "q20", "l": "Comportamento 3: descreva exatamente o que a criança faz", "type": "textarea", "hint": "Preencher se houver terceiro comportamento-alvo."},
+   {"k": "q21", "l": "Os comportamentos ocorrem isolados ou em sequência?", "type": "select", "opt": ["Isolados", "Combinados", "Em sequência previsível", "Não sei informar"], "hint": "Sequência previsível favorece PDC Escala."},
+   {"k": "q22", "l": "Frequência média do comportamento principal", "type": "select", "opt": ["Rara", "Semanal", "2 a 3 vezes por semana", "Diária", "Várias vezes ao dia", "Em quase todos os atendimentos"], "hint": "Selecionar a frequência mais próxima."},
+   {"k": "q23", "l": "Duração média dos episódios", "type": "select", "opt": ["Menos de 1 minuto", "1 a 5 minutos", "5 a 15 minutos", "Mais de 15 minutos", "Variável"], "hint": "Selecionar duração média."},
+   {"k": "q24", "l": "Intensidade média", "type": "select", "opt": ["Leve", "Moderada", "Alta", "Crítica"], "hint": "Selecionar considerando risco e impacto clínico."},
+   {"k": "q25", "l": "O comportamento oferece risco?", "type": "multi", "opt": ["Não", "Sim, para a criança", "Sim, para terapeutas", "Sim, para outras crianças", "Sim, para materiais/ambiente"], "hint": "Risco relevante aumenta necessidade de detalhamento de manejo."},
+   {"k": "q26", "l": "Existe autolesão?", "type": "select", "opt": ["Não", "Sim", "Suspeita/ocasional"], "hint": "Selecionar conforme observação."},
+   {"k": "q27", "l": "Existe heterolesão?", "type": "select", "opt": ["Não", "Sim", "Suspeita/ocasional"], "hint": "Selecionar conforme observação."},
+   {"k": "q28", "l": "Existe destruição de materiais?", "type": "select", "opt": ["Não", "Sim, leve", "Sim, moderada", "Sim, intensa"], "hint": "Selecionar grau observado."},
+   {"k": "q29", "l": "Existe fuga ou tentativa de sair do ambiente?", "type": "select", "opt": ["Não", "Sim", "Suspeita/ocasional"], "hint": "Selecionar conforme observação."},
+   {"k": "freq_dias", "l": "Frequência por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Quantidade de ocorrências por dia. Base para gráfico de frequência."},
+   {"k": "dur_dias", "l": "Duração por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Duração total (min) por dia. Base para gráfico de duração."},
+ ]},
+ {n:4,t:"Antecedentes e gatilhos",f:[
+   {"k": "q30", "l": "O que geralmente acontece imediatamente antes do comportamento?", "type": "textarea", "hint": "Descrever antecedentes observáveis."},
+   {"k": "q31", "l": "O comportamento aparece mais quando há:", "type": "multi", "opt": ["Demanda difícil", "Demanda longa", "Demanda nova", "Interrupção de item preferido", "Negativa de acesso", "Espera", "Transição", "Troca de terapeuta", "Tempo livre", "Ociosidade", "Excesso de estímulos", "Barulho", "Contato físico", "Fadiga", "Sono", "Fome", "Frustração", "Alteração de rotina"], "hint": "Selecionar todos os gatilhos prováveis."},
+   {"k": "q32", "l": "O comportamento ocorre mais com algum profissional específico?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever no campo resposta."},
+   {"k": "q33", "l": "O comportamento ocorre mais em alguma terapia específica?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, informar qual terapia."},
+   {"k": "q34", "l": "Existe relação com demanda sensorial ou motora?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever."},
+   {"k": "q35", "l": "Existe relação com dificuldade de comunicação?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever."},
+ ]},
+ {n:5,t:"Consequências observadas",f:[
+   {"k": "q36", "l": "O que costuma acontecer imediatamente depois do comportamento?", "type": "textarea", "hint": "Descrever resposta dos adultos e alterações no ambiente."},
+   {"k": "q37", "l": "Após o comportamento, a criança geralmente:", "type": "multi", "opt": ["Escapa da demanda", "Ganha pausa", "Recebe atenção", "Acessa item preferido", "É retirada do ambiente", "Recebe ajuda", "Tem a demanda reduzida", "Recebe bloqueio/contenção", "Fica sozinha", "Não há padrão claro"], "hint": "Selecionar consequências mais comuns."},
+   {"k": "q38", "l": "O comportamento costuma parar quando:", "type": "multi", "opt": ["A demanda é retirada", "Recebe atenção", "Acessa reforçador", "Recebe pausa", "Muda de ambiente", "O adulto reduz fala", "O adulto redireciona", "Não sei informar"], "hint": "Ajuda a sustentar hipótese funcional."},
+   {"k": "q39", "l": "Existe possibilidade de o adulto estar reforçando o comportamento sem intenção?", "type": "select", "opt": ["Não", "Sim", "Talvez", "Não sei informar"], "hint": "Importante para plano de manejo consequente."},
+ ]},
+ {n:6,t:"Hipótese funcional",f:[
+   {"k": "q40", "l": "Qual função parece mais provável?", "type": "select", "opt": ["Atenção social", "Fuga/esquiva de demanda", "Acesso a tangível", "Reforço automático/sensorial", "Regulação corporal", "Função mista", "Ainda não está claro"], "hint": "Selecionar hipótese principal."},
+   {"k": "q41", "l": "Justifique a hipótese funcional", "type": "textarea", "hint": "Explicar com base nos antecedentes e consequências."},
+   {"k": "q42", "l": "A função muda conforme profissional, terapia ou contexto?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever."},
+   {"k": "q43", "l": "O comportamento parece pertencer à mesma classe funcional de outros comportamentos?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Exemplo: gritos e tapas com mesma função."},
+ ]},
+ {n:7,t:"Comunicação e repertórios substitutivos",f:[
+   {"k": "q44", "l": "Como a criança pede algo?", "type": "textarea", "hint": "Verbal, gesto, CAA, choro, puxar adulto, etc."},
+   {"k": "q45", "l": "Como a criança nega ou recusa?", "type": "textarea", "hint": "Descrever respostas adequadas e inadequadas."},
+   {"k": "q46", "l": "Como a criança pede ajuda?", "type": "textarea", "hint": "Descrever se é funcional ou não."},
+   {"k": "q47", "l": "Como a criança pede pausa?", "type": "textarea", "hint": "Descrever repertório atual."},
+   {"k": "q48", "l": "Como expressa desconforto, dor ou frustração?", "type": "textarea", "hint": "Descrever sinais observados."},
+   {"k": "q49", "l": "A criança usa CAA?", "type": "select", "opt": ["Não", "Sim, com independência", "Sim, com ajuda", "Está em ensino", "Não se aplica"], "hint": "Selecionar condição atual."},
+   {"k": "q50", "l": "Qual comportamento substitutivo queremos ensinar?", "type": "multi", "opt": ["Pedir pausa", "Pedir ajuda", "Esperar", "Negar adequadamente", "Escolher entre opções", "Usar CAA", "Solicitar item", "Solicitar troca de atividade", "Retornar à atividade", "Regular-se com apoio"], "hint": "Selecionar comportamentos-alvo de ensino."},
+   {"k": "q51", "l": "A criança já emite algum comportamento adequado antes da crise?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever qual."},
+ ]},
+ {n:8,t:"Regulação e sinais de escalada",f:[
+   {"k": "q52", "l": "É possível identificar quando a criança está regulada?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Sim/Parcialmente favorece PDC Escala."},
+   {"k": "q53", "l": "Quais sinais indicam que ela está regulada?", "type": "textarea", "hint": "Exemplo: aceita instrução, mantém contato, participa, permanece na atividade."},
+   {"k": "q54", "l": "É possível identificar quando a criança começa a acelerar?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Essencial para PDC Escala."},
+   {"k": "q55", "l": "Quais sinais indicam aceleração?", "type": "multi", "opt": ["Inquietação", "Aumento de movimento", "Recusa verbal", "Choro inicial", "Afastamento", "Jogar objetos levemente", "Aumento de vocalização", "Rigidez", "Irritabilidade", "Tentativa de fuga", "Outros"], "hint": "Selecionar sinais precursores."},
+   {"k": "q56", "l": "Existe fase intermediária antes da crise?", "type": "select", "opt": ["Sim", "Não", "Não sei informar"], "hint": "Sim favorece PDC Escala."},
+   {"k": "q57", "l": "É possível intervir antes da crise?", "type": "select", "opt": ["Sim, com boa resposta", "Sim, com resposta parcial", "Não", "Não sei informar"], "hint": "Sim favorece PDC Escala."},
+   {"k": "q58", "l": "A crise costuma ter sinais previsíveis?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Sim favorece PDC Escala."},
+   {"k": "q59", "l": "A equipe consegue diferenciar regulado, acelerando e crise?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Sim favorece PDC Escala."},
+   {"k": "q60", "l": "A principal dificuldade da equipe é saber o que fazer em cada fase?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Sim favorece PDC Escala."},
+ ]},
+ {n:9,t:"Equipe multidisciplinar e consistência",f:[
+   {"k": "q61", "l": "Quantos profissionais atendem a criança?", "type": "select", "opt": ["1", "2", "3", "4 ou mais"], "hint": "Quanto maior a equipe, maior a necessidade de padronização."},
+   {"k": "q62", "l": "O comportamento ocorre com mais de um profissional?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Sim pode exigir conduta padronizada."},
+   {"k": "q63", "l": "As condutas dos profissionais são consistentes?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Inconsistência favorece PDC Escala."},
+   {"k": "q64", "l": "Existe divergência entre profissionais sobre como manejar?", "type": "select", "opt": ["Não", "Sim", "Parcialmente"], "hint": "Sim favorece PDC Escala."},
+   {"k": "q65", "l": "A equipe precisa de orientações simples por nível de gravidade?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Sim favorece PDC Escala."},
+   {"k": "q66", "l": "A criança apresenta dificuldade em transições entre profissionais?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Sim favorece PDC Escala."},
+   {"k": "q67", "l": "Há necessidade de padronizar frases, comandos e respostas?", "type": "select", "opt": ["Sim", "Não", "Parcialmente"], "hint": "Sim favorece PDC Escala."},
+ ]},
+ {n:10,t:"Estratégias já utilizadas",f:[
+   {"k": "q68", "l": "Quais estratégias já foram tentadas?", "type": "textarea", "hint": "Descrever estratégias antecedentes, consequentes, reforçadores, pausas, rotina visual, etc."},
+   {"k": "q69", "l": "Por quem foram aplicadas?", "type": "textarea", "hint": "Informar profissionais/família/equipe."},
+   {"k": "q70", "l": "Por quanto tempo foram aplicadas?", "type": "textarea", "hint": "Informar duração aproximada."},
+   {"k": "q71", "l": "Houve melhora?", "type": "select", "opt": ["Sim", "Não", "Parcial"], "hint": "Selecionar resultado geral."},
+   {"k": "q72", "l": "Houve piora?", "type": "select", "opt": ["Sim", "Não", "Parcial"], "hint": "Selecionar resultado geral."},
+   {"k": "q73", "l": "Alguma estratégia deve ser evitada?", "type": "textarea", "hint": "Descrever o que não funciona ou aumenta comportamento."},
+   {"k": "q74", "l": "O que costuma funcionar melhor?", "type": "textarea", "hint": "Descrever estratégias efetivas."},
+   {"k": "q75", "l": "A criança responde bem à rotina visual?", "type": "select", "opt": ["Sim", "Não", "Parcialmente", "Não testado"], "hint": "Resposta positiva pode ajudar nos dois modelos."},
+   {"k": "q76", "l": "A criança responde bem ao cronômetro?", "type": "select", "opt": ["Sim", "Não", "Parcialmente", "Não testado"], "hint": "Resposta positiva pode ajudar nos dois modelos."},
+   {"k": "q77", "l": "A criança responde bem a escolhas?", "type": "select", "opt": ["Sim", "Não", "Parcialmente", "Não testado"], "hint": "Resposta positiva pode ajudar nos dois modelos."},
+   {"k": "q78", "l": "A criança responde bem à pausa planejada?", "type": "select", "opt": ["Sim", "Não", "Parcialmente", "Não testado"], "hint": "Resposta positiva pode favorecer PDC Escala."},
+ ]},
+ {n:11,t:"Reforçadores e preferências",f:[
+   {"k": "q79", "l": "Quais são os principais reforçadores identificados?", "type": "textarea", "hint": "Itens, atividades, atenção, estímulos sensoriais, comida, música, etc."},
+   {"k": "q80", "l": "Tipo de reforçador", "type": "multi", "opt": ["Social", "Comestível", "Sensorial", "Brinquedo", "Tecnologia", "Movimento", "Música", "Atividade específica", "Outro"], "hint": "Selecionar todos os tipos."},
+   {"k": "q81", "l": "O reforçador é potente?", "type": "select", "opt": ["Sim", "Não", "Varia", "Não sei informar"], "hint": "Importante para intervenção."},
+   {"k": "q82", "l": "O reforçador precisa ser fracionado?", "type": "select", "opt": ["Sim", "Não", "Não sei informar"], "hint": "Exemplo: comestível em pequenas quantidades."},
+   {"k": "q83", "l": "O reforçador precisa de tempo definido?", "type": "select", "opt": ["Sim", "Não", "Não sei informar"], "hint": "Exemplo: uso de cronômetro."},
+   {"k": "q84", "l": "Existe algum reforçador contraindicado?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Se sim, descrever no campo resposta."},
+ ]},
+ {n:12,t:"Dados disponíveis",f:[
+   {"k": "q85", "l": "Existe linha de base?", "type": "select", "opt": ["Sim", "Não", "Parcial"], "hint": "Informar se há dados antes da intervenção."},
+   {"k": "q86", "l": "Quantas sessões/dias foram observados?", "type": "text", "hint": "Informar quantidade."},
+   {"k": "q87", "l": "Qual medida foi coletada?", "type": "multi", "opt": ["Frequência", "Duração", "Intensidade", "ABC", "Registro por intervalo", "Outro", "Não coletado"], "hint": "Selecionar medidas disponíveis."},
+   {"k": "q88", "l": "Existem dados suficientes para iniciar intervenção?", "type": "select", "opt": ["Sim", "Parcialmente", "Não"], "hint": "Se não, recomendar coleta antes da elaboração."},
+   {"k": "q89", "l": "Há registro ABC?", "type": "select", "opt": ["Sim", "Não", "Parcial"], "hint": "Importante para PDC Detalhado."},
+   {"k": "q90", "l": "Há gráfico ou tabela?", "type": "select", "opt": ["Sim", "Não"], "hint": "Anexar quando houver."},
+   {"k": "q91", "l": "Há relato da família?", "type": "select", "opt": ["Sim", "Não"], "hint": "Importante para contexto geral."},
+   {"k": "q92", "l": "Há relato de outros profissionais?", "type": "select", "opt": ["Sim", "Não"], "hint": "Importante para equipe multidisciplinar."},
+ ]},
+ {n:13,t:"Objetivos clínicos",f:[
+   {"k": "q93", "l": "Objetivo principal do PDC", "type": "multi", "opt": ["Reduzir comportamento-problema", "Ensinar comunicação funcional", "Aumentar tolerância à espera", "Aumentar tolerância ao não", "Aumentar permanência em atividade", "Melhorar transições", "Reduzir crises", "Reduzir fuga/esquiva", "Reduzir agressão", "Padronizar conduta da equipe", "Aumentar autonomia", "Melhorar participação terapêutica"], "hint": "Selecionar objetivos clínicos."},
+   {"k": "q94", "l": "Qual meta inicial seria realista?", "type": "textarea", "hint": "Descrever meta observável e mensurável."},
+   {"k": "q95", "l": "Como a melhora será medida?", "type": "textarea", "hint": "Exemplo: redução de frequência, aumento de permanência, menos crises."},
+   {"k": "q96", "l": "Em quanto tempo o protocolo deve ser reavaliado?", "type": "select", "opt": ["1 semana", "2 semanas", "4 semanas", "Outro"], "hint": "Definir prazo de revisão."},
+ ]},
+ {n:14,t:"Perguntas classificatórias finais",f:[
+   {"k": "q97", "l": "PERGUNTA CLASSIFICATÓRIA 1: Qual é a principal necessidade clínica deste PDC?", "type": "select", "opt": ["A) Entender a função do comportamento e construir intervenção individualizada", "B) Organizar a conduta da equipe por níveis de regulação"], "hint": "Se marcar A, favorecer PDC Detalhado. Se marcar B, favorecer PDC Escala."},
+   {"k": "q98", "l": "PERGUNTA CLASSIFICATÓRIA 2: A criança apresenta fases claramente diferenciáveis antes ou durante a crise?", "type": "select", "opt": ["A) Não, o comportamento precisa de análise funcional mais detalhada", "B) Sim, é possível identificar regulado, acelerando e crise"], "hint": "Se marcar A, favorecer PDC Detalhado. Se marcar B, favorecer PDC Escala."},
+   {"k": "q99", "l": "Resultado sugerido após análise", "type": "select", "opt": ["PDC Detalhado", "PDC Escala Clínica"], "hint": "Selecionar o modelo final definido pela supervisão/IA após análise do formulário."},
+ ]},
 ];
-const CLASS_BLOCK={n:19,t:'Perguntas classificatórias',d:'Definem o modelo do protocolo'};
+
+const FIELDS_FLAT=SCHEMA.flatMap(b=>b.f);
+const DAYS=Array.from({length:15},(_,i)=>i+1);
+function fmtVal(f,val){
+  if(val==null||val==='')return '';
+  if(f&&f.type==='multi')return Array.isArray(val)?val.join(', '):String(val);
+  if(f&&f.type==='days'){const o=(val&&typeof val==='object')?val:{};
+    const parts=DAYS.filter(d=>o['dia'+d]!=null&&o['dia'+d]!=='').map(d=>'Dia '+d+': '+o['dia'+d]);
+    return parts.join('  ·  ');}
+  return String(val);
+}
+
 
 /* ===================== VIEWS ===================== */
 const Views={};
@@ -696,23 +802,12 @@ Views.abrirForm=async(pid,existing=null)=>{
   const p=S.pacientes.find(x=>x.id===pid)||(await sb.from('pacientes').select('*').eq('id',pid).single()).data;
   if(!p){toast('Paciente não encontrado','error');return;}
   S.formSel={paciente:p,form:existing};
-  const v=k=> existing?esc(existing[k]||''):'';
+  const rec = existing ? existing : {q1:p.nome||'', q2:(p.idade||ageFrom(p.data_nascimento)||''), q3:p.data_nascimento||'', q4:p.diagnostico||'', q7:(S.perfil&&S.perfil.nome)||''};
   const blocks=SCHEMA.map(b=>`
     <div class="form-block card">
-      <div class="bh"><div class="num">${b.n}</div><div><h4>${b.t}</h4><p>${b.d}</p></div></div>
-      ${b.f.map(f=>fieldHTML(f,v(f.k))).join('')}
+      <div class="bh"><div class="num">${b.n}</div><div><h4>${esc(b.t)}</h4></div></div>
+      ${b.f.map(f=>fieldHTML(f,rec)).join('')}
     </div>`).join('');
-  const cls=`
-    <div class="form-block card">
-      <div class="bh"><div class="num">${CLASS_BLOCK.n}</div><div><h4>${CLASS_BLOCK.t}</h4><p>${CLASS_BLOCK.d}</p></div></div>
-      <div class="field"><label class="fld req">1 — O comportamento apresenta risco físico, crise intensa, agressividade, autolesão, fuga, destruição de materiais, alta intensidade ou prejuízo significativo ao atendimento clínico?</label>
-        <select id="f_pergunta_risco" onchange="Views.sugerir()"><option value="">Selecione…</option><option ${existing?.pergunta_risco==='Sim'?'selected':''}>Sim</option><option ${existing?.pergunta_risco==='Não'?'selected':''}>Não</option></select></div>
-      <div class="field"><label class="fld req">2 — O comportamento pode ser classificado por níveis de intensidade e manejado com respostas graduais da equipe clínica?</label>
-        <select id="f_pergunta_escala" onchange="Views.sugerir()"><option value="">Selecione…</option><option ${existing?.pergunta_escala==='Sim'?'selected':''}>Sim</option><option ${existing?.pergunta_escala==='Não'?'selected':''}>Não</option></select></div>
-      <div id="sugBox"></div>
-      <div class="field" style="margin-top:14px"><label class="fld req">Modelo do protocolo a aplicar</label>
-        <select id="f_modelo_escolhido"><option value="">Selecione…</option><option ${existing?.modelo_escolhido==='Detalhado'?'selected':''}>Detalhado</option><option ${existing?.modelo_escolhido==='Escala'?'selected':''}>Escala</option></select></div>
-    </div>`;
   setContent(`
     <div class="selected-patient card">
       ${avatarHTML(p.foto_url,p.nome)}
@@ -723,41 +818,61 @@ Views.abrirForm=async(pid,existing=null)=>{
       <button class="btn btn-ghost btn-sm" onclick="UI.go('novo')">Trocar paciente</button>
     </div>
     ${blocks}
-    ${cls}
     <div class="card" style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:14px">
       <button class="btn btn-ghost" onclick="Views.salvarForm('rascunho')" id="btnRasc">Salvar rascunho</button>
       <button class="btn btn-primary" onclick="Views.salvarForm('enviado')" id="btnEnv">Enviar para o painel</button>
     </div>`);
   Views.sugerir();
 };
-function fieldHTML(f,val=''){
+function fieldHTML(f,rec){
   const id='f_'+f.k;
-  if(f.type==='textarea')return `<div class="field"><label class="fld" for="${id}">${f.l}</label><textarea id="${id}" placeholder="${f.ph||''}">${val}</textarea></div>`;
-  if(f.type==='select')return `<div class="field"><label class="fld" for="${id}">${f.l}</label><select id="${id}"><option value="">Selecione…</option>${f.opt.map(o=>`<option ${val===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
-  return `<div class="field"><label class="fld" for="${id}">${f.l}</label><input id="${id}" value="${val}" placeholder="${f.ph||''}"></div>`;
+  const raw=rec?rec[f.k]:undefined;
+  const hint=f.hint?`<div style="font-size:11.5px;color:var(--muted);margin:0 0 6px 2px">${esc(f.hint)}</div>`:'';
+  const lbl=`<label class="fld" for="${id}">${esc(f.l)}</label>${hint}`;
+  const onchg=(f.k==='q97'||f.k==='q98')?' onchange="Views.sugerir()"':'';
+  if(f.type==='textarea'){return `<div class="field">${lbl}<textarea id="${id}">${esc(raw||'')}</textarea></div>`;}
+  if(f.type==='select'){const v=raw||'';
+    return `<div class="field">${lbl}<select id="${id}"${onchg}><option value="">Selecione…</option>${f.opt.map(o=>`<option ${v===o?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`
+      + (f.k==='q98'?'<div id="sugBox"></div>':'');}
+  if(f.type==='multi'){const arr=Array.isArray(raw)?raw:[];
+    return `<div class="field">${lbl}<div class="chips" id="${id}" data-multi="1">${f.opt.map(o=>`<div class="chip ${arr.includes(o)?'on':''}" data-val="${esc(o)}" onclick="this.classList.toggle('on')">${esc(o)}</div>`).join('')}</div></div>`;}
+  if(f.type==='days'){const o=(raw&&typeof raw==='object'&&!Array.isArray(raw))?raw:{};
+    const cells=DAYS.map(d=>`<div class="day-cell"><span>Dia ${d}</span><input type="number" min="0" step="any" id="${id}__d${d}" value="${o['dia'+d]??''}"></div>`).join('');
+    return `<div class="field">${lbl}<div class="day-grid">${cells}</div></div>`;}
+  return `<div class="field">${lbl}<input id="${id}" value="${esc(raw||'')}"></div>`;
 }
 Views.sugerir=()=>{
-  const r=document.getElementById('f_pergunta_risco')?.value, e=document.getElementById('f_pergunta_escala')?.value;
+  const a=document.getElementById('f_q97')?.value, b=document.getElementById('f_q98')?.value;
   const box=document.getElementById('sugBox');if(!box)return;
-  let sug=null;
-  if(r==='Sim')sug='Detalhado';
-  else if(r==='Não'&&e==='Sim')sug='Escala';
-  else if(r==='Não'&&e==='Não')sug='Detalhado';
-  if(!sug){box.innerHTML='';return;}
+  if(!a&&!b){box.innerHTML='';return;}
+  let det=0,escn=0;
+  if(a){a.charAt(0)==='A'?det++:escn++;}
+  if(b){b.charAt(0)==='A'?det++:escn++;}
+  const sug = det>=escn ? 'PDC Detalhado' : 'PDC Escala Clínica';
   box.innerHTML=`<div class="sug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/><path d="M9 21h6"/></svg>
-    <span>Sugestão automática (ABA): <b>Protocolo ${sug}</b>. O profissional pode confirmar ou ajustar abaixo.</span></div>`;
-  const ms=document.getElementById('f_modelo_escolhido');if(ms&&!ms.value)ms.value=sug;
+    <span>Sugestão automática (ABA): <b>${sug}</b>. A supervisão/IA pode confirmar ou ajustar no campo "Resultado sugerido".</span></div>`;
+  const ms=document.getElementById('f_q99');if(ms&&!ms.value)ms.value=sug;
 };
 Views.salvarForm=async(status)=>{
   const p=S.formSel.paciente;
   const payload={paciente_id:p.id,profissional_id:S.user.id,status};
-  SCHEMA.forEach(b=>b.f.forEach(f=>{payload[f.k]=document.getElementById('f_'+f.k)?.value||null;}));
-  payload.pergunta_risco=document.getElementById('f_pergunta_risco').value||null;
-  payload.pergunta_escala=document.getElementById('f_pergunta_escala').value||null;
-  payload.modelo_escolhido=document.getElementById('f_modelo_escolhido').value||null;
+  SCHEMA.forEach(b=>b.f.forEach(f=>{
+    const id='f_'+f.k;
+    if(f.type==='multi'){
+      const el=document.getElementById(id);
+      payload[f.k]= el ? [...el.querySelectorAll('.chip.on')].map(c=>c.dataset.val) : [];
+    }else if(f.type==='days'){
+      const o={};DAYS.forEach(d=>{const iv=document.getElementById(id+'__d'+d);if(iv&&iv.value!=='')o['dia'+d]=Number(iv.value);});
+      payload[f.k]=o;
+    }else{
+      payload[f.k]=document.getElementById(id)?.value||null;
+    }
+  }));
+  const q99=payload.q99;
+  payload.modelo_escolhido = q99==='PDC Detalhado' ? 'Detalhado' : (q99==='PDC Escala Clínica' ? 'Escala' : null);
   if(status==='enviado'){
-    if(!payload.comportamento_alvo){toast('Preencha ao menos o comportamento-alvo.','error');return;}
-    if(!payload.pergunta_risco||!payload.pergunta_escala||!payload.modelo_escolhido){toast('Responda as perguntas classificatórias e escolha o modelo.','error');return;}
+    if(!payload.q16 && !payload.q15){toast('Preencha ao menos o comportamento-alvo (Bloco 3).','error');return;}
+    if(!payload.q97||!payload.q98||!payload.q99){toast('Responda as perguntas classificatórias finais (Bloco 14).','error');return;}
     payload.data_envio=new Date().toISOString();
   }
   const btn=document.getElementById(status==='enviado'?'btnEnv':'btnRasc');btn.disabled=true;btn.innerHTML='<span class="loader"></span>';
@@ -864,7 +979,7 @@ const Kan={
   async detail(id){
     const {data:f}=await sb.from('formularios_conduta').select('*,pacientes(nome),perfis:profissional_id(nome)').eq('id',id).single();
     const {data:prot}=await sb.from('protocolos_gerados').select('*').eq('formulario_id',id).order('data_geracao',{ascending:false}).limit(1).maybeSingle();
-    const rows=SCHEMA.flatMap(b=>b.f).map(f2=>`<tr><td style="color:var(--text-soft);font-size:12.5px;width:38%">${f2.l}</td><td>${esc(f[f2.k])||'<span style="color:var(--muted)">Não informado</span>'}</td></tr>`).join('');
+    const rows=SCHEMA.flatMap(b=>b.f).map(f2=>{const vv=esc(fmtVal(f2,f[f2.k]));return `<tr><td style="color:var(--text-soft);font-size:12.5px;width:38%">${esc(f2.l)}</td><td>${vv||'<span style="color:var(--muted)">Não informado</span>'}</td></tr>`;}).join('');
     Modal.open(`<div class="modal-h"><h3>${esc(f.pacientes?.nome||'')} — Protocolo</h3><button class="x-btn" onclick="Modal.close()">✕</button></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${statusBadge(f.status)} <span class="badge">Modelo: ${f.modelo_escolhido||'—'}</span> <span class="badge gray">Prof.: ${esc(f.perfis?.nome||'—')}</span></div>
       ${prot?`<div class="card" style="margin-bottom:16px"><b style="font-family:'Plus Jakarta Sans'">Protocolo gerado pela IA</b><div style="margin-top:10px;font-size:14px;line-height:1.6;max-height:300px;overflow:auto">${prot.protocolo_html||esc(prot.protocolo_texto)||''}</div>
@@ -892,15 +1007,13 @@ function docxHTML(f,prot){
       <hr>${prot.protocolo_html||('<p>'+esc(prot.protocolo_texto).replace(/\n/g,'<br>')+'</p>')}</body></html>`;
   }
   // fallback: estrutura a partir do formulário
-  const sec=SCHEMA.map(b=>`<h3>${b.n}. ${b.t}</h3>`+b.f.map(x=>`<p><b>${x.l}:</b> ${esc(f[x.k])||'Informação não fornecida no formulário.'}</p>`).join('')).join('');
+  const sec=SCHEMA.map(b=>`<h3>${b.n}. ${esc(b.t)}</h3>`+b.f.map(x=>`<p><b>${esc(x.l)}:</b> ${esc(fmtVal(x,f[x.k]))||'Informação não fornecida no formulário.'}</p>`).join('')).join('');
   return `<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial;line-height:1.5">
     <h1>Protocolo de Conduta Comportamental — ABA</h1>
     <p><b>Paciente:</b> ${esc(p.nome||'')} (${p.idade||ageFrom(p.data_nascimento)||'—'} anos)<br>
     <b>Mãe:</b> ${esc(p.nome_mae||'—')} &nbsp; <b>Pai:</b> ${esc(p.nome_pai||'—')}<br>
     <b>Profissional:</b> ${esc(f.perfis?.nome||'—')}<br>
     <b>Modelo escolhido:</b> ${esc(f.modelo_escolhido||'—')}</p><hr>${sec}
-    <h3>Perguntas classificatórias</h3>
-    <p><b>Risco/complexidade:</b> ${esc(f.pergunta_risco||'—')}<br><b>Manejo por níveis:</b> ${esc(f.pergunta_escala||'—')}</p>
     <hr><p><i>Documento gerado pelo Sistema PDC Clínico. Sujeito à revisão e aprovação da coordenação.</i></p></body></html>`;
 }
 
