@@ -1152,4 +1152,23 @@ Views.funcoes=async()=>{
       <button class="btn btn-danger btn-sm" onclick="Views.funcDel('${f.id}','${esc(f.nome)}')">Excluir</button></td></tr>`).join('')}
     </tbody></table></div>`);
 };
-Views.funcAdd=async()=>{const nome=nf_nome.valu
+Views.funcAdd=async()=>{
+  const nome=(document.getElementById('nf_nome')||{value:''}).value.trim();
+  if(!nome){toast('Informe o nome da função clínica.','error');return;}
+  const r=await guard(sb.from('funcoes_clinicas').insert({nome}).select().single());
+  if(r){toast('Função adicionada.','success');await loadFuncoes();Views.funcoes();}
+};
+Views.funcToggle=async(id,ativo)=>{
+  const r=await guard(sb.from('funcoes_clinicas').update({ativo}).eq('id',id).select().single());
+  if(r){toast(ativo?'Função ativada.':'Função desativada.','success');await loadFuncoes();Views.funcoes();}
+};
+Views.funcDel=(id,nome)=>confirmDel(`Excluir a função clínica <b>${nome}</b>? Profissionais vinculados perderão essa função.`,async()=>{
+  const r=await guard(sb.from('funcoes_clinicas').delete().eq('id',id));
+  if(r!==null){toast('Função excluída.','success');await loadFuncoes();Views.funcoes();}
+});
+
+/* ===================== BOOT ===================== */
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
