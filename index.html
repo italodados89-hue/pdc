@@ -450,7 +450,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /* ---------- estado global ---------- */
 const S = { user:null, perfil:null, funcoes:[], pacientes:[], usuarios:[],
             formSel:null, view:'home' };
-const can = { viewAll:()=> S.perfil && (S.perfil.role==='admin'||S.perfil.can_view_all),
+const can = { viewAll:()=> S.perfil && (S.perfil.role==='admin'||S.perfil.role==='coordenador'||S.perfil.can_view_all),
+              coord:()=> S.perfil && (S.perfil.role==='admin'||S.perfil.role==='coordenador'),
               admin:()=> S.perfil && S.perfil.role==='admin' };
 
 /* ===================== HELPERS ===================== */
@@ -687,46 +688,107 @@ const SCHEMA=[
    {"k": "b3_piora", "l": "Houve piora recente?", "type": "select", "opt": ["Não", "Sim", "Não sei informar"], "hint": "Selecionar conforme observação clínica."},
  ]},
  {n:4,t:"Comportamentos-alvo, ABC e mensuração",f:[
-   {"k": "b4_qtd", "l": "Quantos comportamentos-alvo serão descritos?", "type": "select", "opt": ["1", "2", "3"], "hint": "Preencha os campos do(s) comportamento(s) conforme a quantidade selecionada."},
-   {"k": "b4_c1_nome", "l": "Comportamento 1 — Nome do comportamento", "type": "text", "hint": "Obrigatório para o 1º comportamento."},
-   {"k": "b4_c1_def", "l": "Comportamento 1 — Definição operacional (TOPOGRAFIA)", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva."},
-   {"k": "b4_c1_conta", "l": "Comportamento 1 — O que conta", "type": "textarea", "hint": "Definir início, fim e exemplos claros."},
-   {"k": "b4_c1_nao_conta", "l": "Comportamento 1 — O que NÃO conta", "type": "textarea", "hint": "Evitar registro incorreto."},
-   {"k": "b4_c1_intensidade", "l": "Comportamento 1 — Intensidade", "type": "select", "opt": ["Baixa", "Moderada", "Grave"]},
-   {"k": "b4_c1_risco", "l": "Comportamento 1 — Risco associado", "type": "select", "opt": ["Não", "Sim"]},
-   {"k": "b4_c1_relacao", "l": "Comportamento 1 — Relação com outros comportamentos", "type": "multi", "opt": ["isolado", "ocorre em cadeia", "antecede outro comportamento", "consequência de outro comportamento"]},
-   {"k": "b4_c2_nome", "l": "Comportamento 2 — Nome do comportamento", "type": "text", "hint": "Preencher se houver."},
-   {"k": "b4_c2_def", "l": "Comportamento 2 — Definição operacional (TOPOGRAFIA)", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva."},
-   {"k": "b4_c2_conta", "l": "Comportamento 2 — O que conta", "type": "textarea", "hint": "Definir início, fim e exemplos claros."},
-   {"k": "b4_c2_nao_conta", "l": "Comportamento 2 — O que NÃO conta", "type": "textarea", "hint": "Evitar registro incorreto."},
-   {"k": "b4_c2_intensidade", "l": "Comportamento 2 — Intensidade", "type": "select", "opt": ["Baixa", "Moderada", "Grave"]},
-   {"k": "b4_c2_risco", "l": "Comportamento 2 — Risco associado", "type": "select", "opt": ["Não", "Sim"]},
-   {"k": "b4_c2_relacao", "l": "Comportamento 2 — Relação com outros comportamentos", "type": "multi", "opt": ["isolado", "ocorre em cadeia", "antecede outro comportamento", "consequência de outro comportamento"]},
-   {"k": "b4_c3_nome", "l": "Comportamento 3 — Nome do comportamento", "type": "text", "hint": "Preencher se houver."},
-   {"k": "b4_c3_def", "l": "Comportamento 3 — Definição operacional (TOPOGRAFIA)", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva."},
-   {"k": "b4_c3_conta", "l": "Comportamento 3 — O que conta", "type": "textarea", "hint": "Definir início, fim e exemplos claros."},
-   {"k": "b4_c3_nao_conta", "l": "Comportamento 3 — O que NÃO conta", "type": "textarea", "hint": "Evitar registro incorreto."},
-   {"k": "b4_c3_intensidade", "l": "Comportamento 3 — Intensidade", "type": "select", "opt": ["Baixa", "Moderada", "Grave"]},
-   {"k": "b4_c3_risco", "l": "Comportamento 3 — Risco associado", "type": "select", "opt": ["Não", "Sim"]},
-   {"k": "b4_c3_relacao", "l": "Comportamento 3 — Relação com outros comportamentos", "type": "multi", "opt": ["isolado", "ocorre em cadeia", "antecede outro comportamento", "consequência de outro comportamento"]},
-   {"k": "b4_terapia_esp", "l": "O comportamento ocorre mais em alguma terapia específica? Se sim, qual?", "type": "textarea"},
-   {"k": "b4_sensorial", "l": "Existe relação com demanda sensorial ou motora? Se sim, descrever.", "type": "textarea"},
-   {"k": "b4_comunic_dif", "l": "Existe relação com dificuldade de comunicação? Se sim, descrever.", "type": "textarea"},
-   {"k": "b4_sinais_iniciais", "l": "Sinais iniciais observados antes do comportamento", "type": "multi", "opt": ["inquietação motora", "vocalizações aumentadas", "recusa verbal", "afastamento", "rigidez corporal", "choro leve", "aumento de estereotipias", "alteração facial", "jogar itens", "outro", "não é observado"]},
-   {"k": "b4_ocorre_quando", "l": "O comportamento ocorre mais frequentemente quando:", "type": "multi", "opt": ["há demandas", "há retirada de atenção", "há negativa", "há espera", "há mudança de atividade", "há excesso de estímulos", "há pouca estimulação", "sem padrão claro"]},
-   {"k": "b4_demandas_tipo", "l": "Quando o comportamento ocorre diante de demandas, elas costumam ser:", "type": "multi", "opt": ["muito fáceis", "adequadas ao repertório", "difíceis", "desconhecidas", "longas", "com múltiplas etapas", "exigem comunicação", "exigem coordenação motora"]},
-   {"k": "b4_apos", "l": "Após o comportamento, geralmente:", "type": "multi", "opt": ["recebe atenção", "escapa da atividade", "obtém item", "retirada do item", "recebe pausa", "ambiente permanece igual", "é direcionado"]},
-   {"k": "b4_para_quando", "l": "O comportamento costuma parar quando:", "type": "multi", "opt": ["a demanda é retirada", "a criança obtém o que deseja", "recebe atenção de adultos", "recebe atenção de outras crianças", "recebe ajuda", "recebe orientação verbal", "é redirecionada para outra atividade", "tem acesso a reforçadores", "consegue se comunicar", "recebe uma pausa", "muda de ambiente", "é ignorado (extinção)", "ocorre intervenção física mínima necessária", "após determinado período de tempo", "espontaneamente", "varia conforme a situação", "não foi possível identificar"]},
-   {"k": "b4_tempo_cessacao", "l": "Tempo médio para cessação do comportamento", "type": "select", "opt": ["menos de 1 minuto", "entre 1 e 5 minutos", "entre 5 e 10 minutos", "entre 10 e 20 minutos", "mais de 20 minutos", "varia significativamente", "não foi possível identificar"]},
-   {"k": "b4_hipotese", "l": "A hipótese funcional sugerida é:", "type": "select", "opt": ["atenção", "fuga", "acesso", "automática", "múltipla"], "hint": "Campo-chave para o mapeamento funcional do protocolo."},
-   {"k": "b4_confianca", "l": "Grau de confiança da hipótese:", "type": "select", "opt": ["alto", "moderado", "baixo"]},
-   {"k": "b4_medida", "l": "Qual medida representa melhor o comportamento?", "type": "multi", "opt": ["frequência", "duração", "intensidade", "latência"]},
-   {"k": "b4_tendencia", "l": "Tendência observada", "type": "select", "opt": ["estável", "aumentando", "diminuindo"]},
-   {"k": "b4_variabilidade", "l": "Variabilidade", "type": "select", "opt": ["baixa", "moderada", "alta"]},
-   {"k": "freq_dias", "l": "Frequência por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Quantidade de ocorrências por dia. Base para gráfico de frequência."},
-   {"k": "dur_dias", "l": "Duração por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Duração total (min) por dia. Base para gráfico de duração."},
-   {"k": "b4_ensinar", "l": "O que queremos ensinar?", "type": "multi", "opt": ["pedir ajuda", "pedir pausa", "pedir item", "aceitar negativa", "tolerar espera", "comunicar desconforto", "solicitar atenção", "autorregulação", "aceitar trocas"]},
-   {"k": "b4_como_fara", "l": "Como essa criança fará isso?", "type": "multi", "opt": ["verbalmente", "CAA", "gesto", "aproximação física", "apoio visual"]},
+   {"k": "comp_qtd", "l": "Quantos comportamentos-alvo serão descritos?", "type": "select", "opt": ["1", "2", "3", "4"], "hint": "Selecione a quantidade (até 4). Para cada comportamento abre-se o conjunto completo de perguntas."},
+   {"k": "c1_nome", "l": "Nome do comportamento", "type": "text", "hint": "Obrigatório para o 1º comportamento.", "comp": 1},
+   {"k": "c1_def", "l": "Definição operacional (TOPOGRAFIA)", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva.", "comp": 1},
+   {"k": "c1_conta", "l": "O que conta", "type": "textarea", "hint": "Definir início, fim e exemplos claros.", "comp": 1},
+   {"k": "c1_nao_conta", "l": "O que NÃO conta", "type": "textarea", "hint": "Evitar registro incorreto.", "comp": 1},
+   {"k": "c1_intensidade", "l": "Intensidade", "type": "select", "opt": ["Baixa", "Moderada", "Grave"], "comp": 1},
+   {"k": "c1_risco", "l": "Risco associado", "type": "select", "opt": ["Não", "Sim"], "comp": 1},
+   {"k": "c1_relacao", "l": "Relação com outros comportamentos", "type": "multi", "opt": ["isolado", "ocorre em cadeia", "antecede outro comportamento", "consequência de outro comportamento"], "comp": 1},
+   {"k": "c1_terapia_esp", "l": "O comportamento ocorre mais em alguma terapia específica? Se sim, qual?", "type": "textarea", "comp": 1},
+   {"k": "c1_sensorial", "l": "Existe relação com demanda sensorial ou motora? Se sim, descrever.", "type": "textarea", "comp": 1},
+   {"k": "c1_comunic_dif", "l": "Existe relação com dificuldade de comunicação? Se sim, descrever.", "type": "textarea", "comp": 1},
+   {"k": "c1_sinais_iniciais", "l": "Sinais iniciais observados antes do comportamento", "type": "multi", "opt": ["inquietação motora", "vocalizações aumentadas", "recusa verbal", "afastamento", "rigidez corporal", "choro leve", "aumento de estereotipias", "alteração facial", "não é observado", "jogar itens", "outro"], "comp": 1},
+   {"k": "c1_ocorre_quando", "l": "O comportamento ocorre mais frequentemente quando:", "type": "multi", "opt": ["há demandas", "há retirada de atenção", "há negativa", "há espera", "há mudança de atividade", "há excesso de estímulos", "há pouca estimulação", "sem padrão claro"], "comp": 1},
+   {"k": "c1_demandas_tipo", "l": "Quando o comportamento ocorre diante de demandas, elas costumam ser:", "type": "multi", "opt": ["muito fáceis", "adequadas ao repertório", "difíceis", "desconhecidas", "longas", "com múltiplas etapas", "exigem comunicação", "exigem coordenação motora"], "comp": 1},
+   {"k": "c1_apos", "l": "Após o comportamento, geralmente:", "type": "multi", "opt": ["recebe atenção", "escapa da atividade", "obtém item", "retirada do item", "recebe pausa", "ambiente permanece igual", "é direcionado"], "comp": 1},
+   {"k": "c1_para_quando", "l": "O comportamento costuma parar quando:", "type": "multi", "opt": ["a demanda é retirada", "a criança obtém o que deseja", "recebe atenção de adultos", "recebe atenção de outras crianças", "recebe ajuda", "recebe orientação verbal", "é redirecionada para outra atividade", "tem acesso a reforçadores", "consegue se comunicar", "recebe uma pausa", "muda de ambiente", "é ignorado (extinção)", "ocorre intervenção física mínima necessária", "após determinado período de tempo", "espontaneamente", "varia conforme a situação", "não foi possível identificar"], "comp": 1},
+   {"k": "c1_tempo_cessacao", "l": "Tempo médio para cessação do comportamento", "type": "select", "opt": ["menos de 1 minuto", "entre 1 e 5 minutos", "entre 5 e 10 minutos", "entre 10 e 20 minutos", "mais de 20 minutos", "varia significativamente", "não foi possível identificar"], "comp": 1},
+   {"k": "c1_hipotese", "l": "A hipótese funcional sugerida é:", "type": "select", "opt": ["atenção", "fuga", "acesso", "automática", "múltipla"], "hint": "Campo-chave para o mapeamento funcional do protocolo.", "comp": 1},
+   {"k": "c1_confianca", "l": "Grau de confiança da hipótese", "type": "select", "opt": ["alto", "moderado", "baixo"], "comp": 1},
+   {"k": "c1_medida", "l": "Qual medida representa melhor o comportamento?", "type": "multi", "opt": ["frequência", "duração", "intensidade", "latência"], "comp": 1},
+   {"k": "c1_tendencia", "l": "Tendência observada", "type": "select", "opt": ["estável", "aumentando", "diminuindo"], "comp": 1},
+   {"k": "c1_variabilidade", "l": "Variabilidade", "type": "select", "opt": ["baixa", "moderada", "alta"], "comp": 1},
+   {"k": "c1_freq_dias", "l": "Frequência por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Quantidade de ocorrências por dia. Base para gráfico de frequência.", "comp": 1},
+   {"k": "c1_dur_dias", "l": "Duração por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Duração total (min) por dia. Base para gráfico de duração.", "comp": 1},
+   {"k": "c1_ensinar", "l": "O que queremos ensinar?", "type": "multi", "opt": ["pedir ajuda", "pedir pausa", "pedir item", "aceitar negativa", "tolerar espera", "comunicar desconforto", "solicitar atenção", "autorregulação", "aceitar trocas"], "comp": 1},
+   {"k": "c1_como_fara", "l": "Como essa criança fará isso?", "type": "multi", "opt": ["verbalmente", "CAA", "gesto", "aproximação física", "apoio visual"], "comp": 1},
+   {"k": "c2_nome", "l": "Nome do comportamento", "type": "text", "hint": "Preencher conforme a quantidade indicada.", "comp": 2},
+   {"k": "c2_def", "l": "Definição operacional (TOPOGRAFIA)", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva.", "comp": 2},
+   {"k": "c2_conta", "l": "O que conta", "type": "textarea", "hint": "Definir início, fim e exemplos claros.", "comp": 2},
+   {"k": "c2_nao_conta", "l": "O que NÃO conta", "type": "textarea", "hint": "Evitar registro incorreto.", "comp": 2},
+   {"k": "c2_intensidade", "l": "Intensidade", "type": "select", "opt": ["Baixa", "Moderada", "Grave"], "comp": 2},
+   {"k": "c2_risco", "l": "Risco associado", "type": "select", "opt": ["Não", "Sim"], "comp": 2},
+   {"k": "c2_relacao", "l": "Relação com outros comportamentos", "type": "multi", "opt": ["isolado", "ocorre em cadeia", "antecede outro comportamento", "consequência de outro comportamento"], "comp": 2},
+   {"k": "c2_terapia_esp", "l": "O comportamento ocorre mais em alguma terapia específica? Se sim, qual?", "type": "textarea", "comp": 2},
+   {"k": "c2_sensorial", "l": "Existe relação com demanda sensorial ou motora? Se sim, descrever.", "type": "textarea", "comp": 2},
+   {"k": "c2_comunic_dif", "l": "Existe relação com dificuldade de comunicação? Se sim, descrever.", "type": "textarea", "comp": 2},
+   {"k": "c2_sinais_iniciais", "l": "Sinais iniciais observados antes do comportamento", "type": "multi", "opt": ["inquietação motora", "vocalizações aumentadas", "recusa verbal", "afastamento", "rigidez corporal", "choro leve", "aumento de estereotipias", "alteração facial", "não é observado", "jogar itens", "outro"], "comp": 2},
+   {"k": "c2_ocorre_quando", "l": "O comportamento ocorre mais frequentemente quando:", "type": "multi", "opt": ["há demandas", "há retirada de atenção", "há negativa", "há espera", "há mudança de atividade", "há excesso de estímulos", "há pouca estimulação", "sem padrão claro"], "comp": 2},
+   {"k": "c2_demandas_tipo", "l": "Quando o comportamento ocorre diante de demandas, elas costumam ser:", "type": "multi", "opt": ["muito fáceis", "adequadas ao repertório", "difíceis", "desconhecidas", "longas", "com múltiplas etapas", "exigem comunicação", "exigem coordenação motora"], "comp": 2},
+   {"k": "c2_apos", "l": "Após o comportamento, geralmente:", "type": "multi", "opt": ["recebe atenção", "escapa da atividade", "obtém item", "retirada do item", "recebe pausa", "ambiente permanece igual", "é direcionado"], "comp": 2},
+   {"k": "c2_para_quando", "l": "O comportamento costuma parar quando:", "type": "multi", "opt": ["a demanda é retirada", "a criança obtém o que deseja", "recebe atenção de adultos", "recebe atenção de outras crianças", "recebe ajuda", "recebe orientação verbal", "é redirecionada para outra atividade", "tem acesso a reforçadores", "consegue se comunicar", "recebe uma pausa", "muda de ambiente", "é ignorado (extinção)", "ocorre intervenção física mínima necessária", "após determinado período de tempo", "espontaneamente", "varia conforme a situação", "não foi possível identificar"], "comp": 2},
+   {"k": "c2_tempo_cessacao", "l": "Tempo médio para cessação do comportamento", "type": "select", "opt": ["menos de 1 minuto", "entre 1 e 5 minutos", "entre 5 e 10 minutos", "entre 10 e 20 minutos", "mais de 20 minutos", "varia significativamente", "não foi possível identificar"], "comp": 2},
+   {"k": "c2_hipotese", "l": "A hipótese funcional sugerida é:", "type": "select", "opt": ["atenção", "fuga", "acesso", "automática", "múltipla"], "hint": "Campo-chave para o mapeamento funcional do protocolo.", "comp": 2},
+   {"k": "c2_confianca", "l": "Grau de confiança da hipótese", "type": "select", "opt": ["alto", "moderado", "baixo"], "comp": 2},
+   {"k": "c2_medida", "l": "Qual medida representa melhor o comportamento?", "type": "multi", "opt": ["frequência", "duração", "intensidade", "latência"], "comp": 2},
+   {"k": "c2_tendencia", "l": "Tendência observada", "type": "select", "opt": ["estável", "aumentando", "diminuindo"], "comp": 2},
+   {"k": "c2_variabilidade", "l": "Variabilidade", "type": "select", "opt": ["baixa", "moderada", "alta"], "comp": 2},
+   {"k": "c2_freq_dias", "l": "Frequência por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Quantidade de ocorrências por dia. Base para gráfico de frequência.", "comp": 2},
+   {"k": "c2_dur_dias", "l": "Duração por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Duração total (min) por dia. Base para gráfico de duração.", "comp": 2},
+   {"k": "c2_ensinar", "l": "O que queremos ensinar?", "type": "multi", "opt": ["pedir ajuda", "pedir pausa", "pedir item", "aceitar negativa", "tolerar espera", "comunicar desconforto", "solicitar atenção", "autorregulação", "aceitar trocas"], "comp": 2},
+   {"k": "c2_como_fara", "l": "Como essa criança fará isso?", "type": "multi", "opt": ["verbalmente", "CAA", "gesto", "aproximação física", "apoio visual"], "comp": 2},
+   {"k": "c3_nome", "l": "Nome do comportamento", "type": "text", "hint": "Preencher conforme a quantidade indicada.", "comp": 3},
+   {"k": "c3_def", "l": "Definição operacional (TOPOGRAFIA)", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva.", "comp": 3},
+   {"k": "c3_conta", "l": "O que conta", "type": "textarea", "hint": "Definir início, fim e exemplos claros.", "comp": 3},
+   {"k": "c3_nao_conta", "l": "O que NÃO conta", "type": "textarea", "hint": "Evitar registro incorreto.", "comp": 3},
+   {"k": "c3_intensidade", "l": "Intensidade", "type": "select", "opt": ["Baixa", "Moderada", "Grave"], "comp": 3},
+   {"k": "c3_risco", "l": "Risco associado", "type": "select", "opt": ["Não", "Sim"], "comp": 3},
+   {"k": "c3_relacao", "l": "Relação com outros comportamentos", "type": "multi", "opt": ["isolado", "ocorre em cadeia", "antecede outro comportamento", "consequência de outro comportamento"], "comp": 3},
+   {"k": "c3_terapia_esp", "l": "O comportamento ocorre mais em alguma terapia específica? Se sim, qual?", "type": "textarea", "comp": 3},
+   {"k": "c3_sensorial", "l": "Existe relação com demanda sensorial ou motora? Se sim, descrever.", "type": "textarea", "comp": 3},
+   {"k": "c3_comunic_dif", "l": "Existe relação com dificuldade de comunicação? Se sim, descrever.", "type": "textarea", "comp": 3},
+   {"k": "c3_sinais_iniciais", "l": "Sinais iniciais observados antes do comportamento", "type": "multi", "opt": ["inquietação motora", "vocalizações aumentadas", "recusa verbal", "afastamento", "rigidez corporal", "choro leve", "aumento de estereotipias", "alteração facial", "não é observado", "jogar itens", "outro"], "comp": 3},
+   {"k": "c3_ocorre_quando", "l": "O comportamento ocorre mais frequentemente quando:", "type": "multi", "opt": ["há demandas", "há retirada de atenção", "há negativa", "há espera", "há mudança de atividade", "há excesso de estímulos", "há pouca estimulação", "sem padrão claro"], "comp": 3},
+   {"k": "c3_demandas_tipo", "l": "Quando o comportamento ocorre diante de demandas, elas costumam ser:", "type": "multi", "opt": ["muito fáceis", "adequadas ao repertório", "difíceis", "desconhecidas", "longas", "com múltiplas etapas", "exigem comunicação", "exigem coordenação motora"], "comp": 3},
+   {"k": "c3_apos", "l": "Após o comportamento, geralmente:", "type": "multi", "opt": ["recebe atenção", "escapa da atividade", "obtém item", "retirada do item", "recebe pausa", "ambiente permanece igual", "é direcionado"], "comp": 3},
+   {"k": "c3_para_quando", "l": "O comportamento costuma parar quando:", "type": "multi", "opt": ["a demanda é retirada", "a criança obtém o que deseja", "recebe atenção de adultos", "recebe atenção de outras crianças", "recebe ajuda", "recebe orientação verbal", "é redirecionada para outra atividade", "tem acesso a reforçadores", "consegue se comunicar", "recebe uma pausa", "muda de ambiente", "é ignorado (extinção)", "ocorre intervenção física mínima necessária", "após determinado período de tempo", "espontaneamente", "varia conforme a situação", "não foi possível identificar"], "comp": 3},
+   {"k": "c3_tempo_cessacao", "l": "Tempo médio para cessação do comportamento", "type": "select", "opt": ["menos de 1 minuto", "entre 1 e 5 minutos", "entre 5 e 10 minutos", "entre 10 e 20 minutos", "mais de 20 minutos", "varia significativamente", "não foi possível identificar"], "comp": 3},
+   {"k": "c3_hipotese", "l": "A hipótese funcional sugerida é:", "type": "select", "opt": ["atenção", "fuga", "acesso", "automática", "múltipla"], "hint": "Campo-chave para o mapeamento funcional do protocolo.", "comp": 3},
+   {"k": "c3_confianca", "l": "Grau de confiança da hipótese", "type": "select", "opt": ["alto", "moderado", "baixo"], "comp": 3},
+   {"k": "c3_medida", "l": "Qual medida representa melhor o comportamento?", "type": "multi", "opt": ["frequência", "duração", "intensidade", "latência"], "comp": 3},
+   {"k": "c3_tendencia", "l": "Tendência observada", "type": "select", "opt": ["estável", "aumentando", "diminuindo"], "comp": 3},
+   {"k": "c3_variabilidade", "l": "Variabilidade", "type": "select", "opt": ["baixa", "moderada", "alta"], "comp": 3},
+   {"k": "c3_freq_dias", "l": "Frequência por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Quantidade de ocorrências por dia. Base para gráfico de frequência.", "comp": 3},
+   {"k": "c3_dur_dias", "l": "Duração por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Duração total (min) por dia. Base para gráfico de duração.", "comp": 3},
+   {"k": "c3_ensinar", "l": "O que queremos ensinar?", "type": "multi", "opt": ["pedir ajuda", "pedir pausa", "pedir item", "aceitar negativa", "tolerar espera", "comunicar desconforto", "solicitar atenção", "autorregulação", "aceitar trocas"], "comp": 3},
+   {"k": "c3_como_fara", "l": "Como essa criança fará isso?", "type": "multi", "opt": ["verbalmente", "CAA", "gesto", "aproximação física", "apoio visual"], "comp": 3},
+   {"k": "c4_nome", "l": "Nome do comportamento", "type": "text", "hint": "Preencher conforme a quantidade indicada.", "comp": 4},
+   {"k": "c4_def", "l": "Definição operacional (TOPOGRAFIA)", "type": "textarea", "hint": "Descrição observável, sem interpretação subjetiva.", "comp": 4},
+   {"k": "c4_conta", "l": "O que conta", "type": "textarea", "hint": "Definir início, fim e exemplos claros.", "comp": 4},
+   {"k": "c4_nao_conta", "l": "O que NÃO conta", "type": "textarea", "hint": "Evitar registro incorreto.", "comp": 4},
+   {"k": "c4_intensidade", "l": "Intensidade", "type": "select", "opt": ["Baixa", "Moderada", "Grave"], "comp": 4},
+   {"k": "c4_risco", "l": "Risco associado", "type": "select", "opt": ["Não", "Sim"], "comp": 4},
+   {"k": "c4_relacao", "l": "Relação com outros comportamentos", "type": "multi", "opt": ["isolado", "ocorre em cadeia", "antecede outro comportamento", "consequência de outro comportamento"], "comp": 4},
+   {"k": "c4_terapia_esp", "l": "O comportamento ocorre mais em alguma terapia específica? Se sim, qual?", "type": "textarea", "comp": 4},
+   {"k": "c4_sensorial", "l": "Existe relação com demanda sensorial ou motora? Se sim, descrever.", "type": "textarea", "comp": 4},
+   {"k": "c4_comunic_dif", "l": "Existe relação com dificuldade de comunicação? Se sim, descrever.", "type": "textarea", "comp": 4},
+   {"k": "c4_sinais_iniciais", "l": "Sinais iniciais observados antes do comportamento", "type": "multi", "opt": ["inquietação motora", "vocalizações aumentadas", "recusa verbal", "afastamento", "rigidez corporal", "choro leve", "aumento de estereotipias", "alteração facial", "não é observado", "jogar itens", "outro"], "comp": 4},
+   {"k": "c4_ocorre_quando", "l": "O comportamento ocorre mais frequentemente quando:", "type": "multi", "opt": ["há demandas", "há retirada de atenção", "há negativa", "há espera", "há mudança de atividade", "há excesso de estímulos", "há pouca estimulação", "sem padrão claro"], "comp": 4},
+   {"k": "c4_demandas_tipo", "l": "Quando o comportamento ocorre diante de demandas, elas costumam ser:", "type": "multi", "opt": ["muito fáceis", "adequadas ao repertório", "difíceis", "desconhecidas", "longas", "com múltiplas etapas", "exigem comunicação", "exigem coordenação motora"], "comp": 4},
+   {"k": "c4_apos", "l": "Após o comportamento, geralmente:", "type": "multi", "opt": ["recebe atenção", "escapa da atividade", "obtém item", "retirada do item", "recebe pausa", "ambiente permanece igual", "é direcionado"], "comp": 4},
+   {"k": "c4_para_quando", "l": "O comportamento costuma parar quando:", "type": "multi", "opt": ["a demanda é retirada", "a criança obtém o que deseja", "recebe atenção de adultos", "recebe atenção de outras crianças", "recebe ajuda", "recebe orientação verbal", "é redirecionada para outra atividade", "tem acesso a reforçadores", "consegue se comunicar", "recebe uma pausa", "muda de ambiente", "é ignorado (extinção)", "ocorre intervenção física mínima necessária", "após determinado período de tempo", "espontaneamente", "varia conforme a situação", "não foi possível identificar"], "comp": 4},
+   {"k": "c4_tempo_cessacao", "l": "Tempo médio para cessação do comportamento", "type": "select", "opt": ["menos de 1 minuto", "entre 1 e 5 minutos", "entre 5 e 10 minutos", "entre 10 e 20 minutos", "mais de 20 minutos", "varia significativamente", "não foi possível identificar"], "comp": 4},
+   {"k": "c4_hipotese", "l": "A hipótese funcional sugerida é:", "type": "select", "opt": ["atenção", "fuga", "acesso", "automática", "múltipla"], "hint": "Campo-chave para o mapeamento funcional do protocolo.", "comp": 4},
+   {"k": "c4_confianca", "l": "Grau de confiança da hipótese", "type": "select", "opt": ["alto", "moderado", "baixo"], "comp": 4},
+   {"k": "c4_medida", "l": "Qual medida representa melhor o comportamento?", "type": "multi", "opt": ["frequência", "duração", "intensidade", "latência"], "comp": 4},
+   {"k": "c4_tendencia", "l": "Tendência observada", "type": "select", "opt": ["estável", "aumentando", "diminuindo"], "comp": 4},
+   {"k": "c4_variabilidade", "l": "Variabilidade", "type": "select", "opt": ["baixa", "moderada", "alta"], "comp": 4},
+   {"k": "c4_freq_dias", "l": "Frequência por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Quantidade de ocorrências por dia. Base para gráfico de frequência.", "comp": 4},
+   {"k": "c4_dur_dias", "l": "Duração por dia — registro diário (Dia 1 a Dia 15)", "type": "days", "hint": "Duração total (min) por dia. Base para gráfico de duração.", "comp": 4},
+   {"k": "c4_ensinar", "l": "O que queremos ensinar?", "type": "multi", "opt": ["pedir ajuda", "pedir pausa", "pedir item", "aceitar negativa", "tolerar espera", "comunicar desconforto", "solicitar atenção", "autorregulação", "aceitar trocas"], "comp": 4},
+   {"k": "c4_como_fara", "l": "Como essa criança fará isso?", "type": "multi", "opt": ["verbalmente", "CAA", "gesto", "aproximação física", "apoio visual"], "comp": 4},
  ]},
  {n:5,t:"Perfil de intervenção e estratégias já utilizadas",f:[
    {"k": "b5_responde_bem", "l": "O paciente responde bem a:", "type": "multi", "opt": ["cronômetro/temporizador", "primeiro-então", "escolhas controladas", "rotina visual", "agenda visual", "economia de fichas", "reforçadores sociais", "reforçadores comestíveis", "reforçadores tangíveis", "reforçadores de atividade", "pausas programadas", "modelação", "dicas visuais", "dicas verbais", "antecipação de mudanças", "instruções curtas e objetivas", "mediação individualizada", "outro(s)", "não foi possível identificar"]},
@@ -877,11 +939,8 @@ Views.abrirForm=async(pid,existing=null)=>{
   const rec = existing
     ? Object.assign({}, existing.respostas||{}, {freq_dias:existing.freq_dias, dur_dias:existing.dur_dias})
     : {b1_nome:p.nome||'', b1_idade:(p.idade||ageFrom(p.data_nascimento)||''), b1_nasc:p.data_nascimento||'', b1_diag:p.diagnostico||'', b1_terapeuta:(S.perfil&&S.perfil.nome)||''};
-  const blocks=SCHEMA.map(b=>`
-    <div class="form-block card">
-      <div class="bh"><div class="num">${b.n}</div><div><h4>${esc(b.t)}</h4></div></div>
-      ${b.f.map(f=>fieldHTML(f,rec)).join('')}
-    </div>`).join('');
+  const blocks=SCHEMA.map(b=>blockHTML(b,rec)).join('');
+  const editingPipeline = existing && existing.status && existing.status!=='rascunho';
   setContent(`
     <div class="selected-patient card">
       ${avatarHTML(p.foto_url,p.nome)}
@@ -893,17 +952,48 @@ Views.abrirForm=async(pid,existing=null)=>{
     </div>
     ${blocks}
     <div class="card" style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:14px">
-      <button class="btn btn-ghost" onclick="Views.salvarForm('rascunho')" id="btnRasc">Salvar rascunho</button>
-      <button class="btn btn-primary" onclick="Views.salvarForm('enviado')" id="btnEnv">Enviar para o painel</button>
+      ${editingPipeline
+        ? `<button class="btn btn-ghost" onclick="UI.go('kanban')">Cancelar</button>
+           <button class="btn btn-primary" onclick="Views.salvarForm('manter')" id="btnEnv">Salvar alterações</button>`
+        : `<button class="btn btn-ghost" onclick="Views.salvarForm('rascunho')" id="btnRasc">Salvar rascunho</button>
+           <button class="btn btn-primary" onclick="Views.salvarForm('enviado')" id="btnEnv">Enviar para o painel</button>`}
     </div>`);
   Views.sugerir();
+  Views.toggleComp((rec&&rec.comp_qtd)||'1');
+};
+/* Renderiza um bloco: normal OU bloco de comportamentos (grupos repetidos por quantidade). */
+function blockHTML(b,rec){
+  const head=`<div class="bh"><div class="num">${b.n}</div><div><h4>${esc(b.t)}</h4></div></div>`;
+  const compFields=b.f.filter(f=>f.comp);
+  if(!compFields.length){
+    return `<div class="form-block card">${head}${b.f.map(f=>fieldHTML(f,rec)).join('')}</div>`;
+  }
+  const nonComp=b.f.filter(f=>!f.comp).map(f=>fieldHTML(f,rec)).join('');
+  const maxN=Math.max(...compFields.map(f=>f.comp));
+  let groups='';
+  for(let n=1;n<=maxN;n++){
+    const gf=b.f.filter(f=>f.comp===n);
+    groups+=`<div class="comp-group" data-comp="${n}" style="border:1px dashed var(--glass-border,#cbd5e1);border-radius:12px;padding:10px 14px;margin:14px 0;background:rgba(47,111,106,.04)">
+      <div style="font-weight:700;color:#2f6f6a;letter-spacing:.4px;font-size:12.5px;margin:0 0 10px">▸ Comportamento ${n} — INÍCIO</div>
+      ${gf.map(f=>fieldHTML(f,rec)).join('')}
+      <div style="font-weight:700;color:#94a3b8;letter-spacing:.4px;font-size:12px;margin:8px 0 0;text-align:right">Comportamento ${n} — FIM ◂</div>
+    </div>`;
+  }
+  return `<div class="form-block card">${head}${nonComp}<div id="compWrap">${groups}</div></div>`;
+}
+/* Mostra/oculta os grupos de comportamento conforme a quantidade selecionada. */
+Views.toggleComp=(qtd)=>{
+  const n=parseInt(qtd||'1',10)||1;
+  document.querySelectorAll('.comp-group').forEach(g=>{
+    g.style.display = (parseInt(g.dataset.comp,10)<=n) ? '' : 'none';
+  });
 };
 function fieldHTML(f,rec){
   const id='f_'+f.k;
   const raw=rec?rec[f.k]:undefined;
   const hint=f.hint?`<div style="font-size:11.5px;color:var(--muted);margin:0 0 6px 2px">${esc(f.hint)}</div>`:'';
   const lbl=`<label class="fld" for="${id}">${esc(f.l)}</label>${hint}`;
-  const onchg=(f.k==='q97'||f.k==='q98')?' onchange="Views.sugerir()"':'';
+  const onchg=(f.k==='q97'||f.k==='q98')?' onchange="Views.sugerir()"':(f.k==='comp_qtd'?' onchange="Views.toggleComp(this.value)"':'');
   if(f.type==='textarea'){return `<div class="field">${lbl}<textarea id="${id}">${esc(raw||'')}</textarea></div>`;}
   if(f.type==='select'){const v=raw||'';
     return `<div class="field">${lbl}<select id="${id}"${onchg}><option value="">Selecione…</option>${f.opt.map(o=>`<option ${v===o?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`
@@ -929,8 +1019,11 @@ Views.sugerir=()=>{
 };
 Views.salvarForm=async(status)=>{
   const p=S.formSel.paciente;
+  const existing=S.formSel.form;
+  // 'manter' (edição de cartão já no pipeline) preserva o status atual e NÃO some do kanban.
+  let realStatus = (status==='manter') ? (existing?.status || 'enviado') : status;
   const respostas={};
-  const payload={paciente_id:p.id,profissional_id:S.user.id,status,respostas};
+  const payload={paciente_id:p.id, profissional_id: existing?.profissional_id || S.user.id, status:realStatus, respostas};
   SCHEMA.forEach(b=>b.f.forEach(f=>{
     const id='f_'+f.k;
     let val;
@@ -943,25 +1036,25 @@ Views.salvarForm=async(status)=>{
     }else{
       val=document.getElementById(id)?.value||null;
     }
-    // freq_dias/dur_dias seguem como colunas próprias (base dos gráficos); demais vão para respostas (jsonb)
-    if(f.k==='freq_dias'||f.k==='dur_dias') payload[f.k]=val; else respostas[f.k]=val;
+    respostas[f.k]=val;  // tudo (inclusive freq/dur por comportamento) vive em respostas (jsonb)
   }));
   const q99=respostas.q99;
   payload.modelo_escolhido = q99==='PDC Detalhado' ? 'Detalhado' : (q99==='PDC Escala Clínica' ? 'Escala' : null);
-  if(status==='enviado'){
-    if(!respostas.b4_c1_nome && !respostas.b4_c1_def){toast('Preencha ao menos o comportamento-alvo 1 (Bloco 4).','error');return;}
+  const exigeCompleto = (realStatus!=='rascunho');
+  if(exigeCompleto){
+    if(!respostas.c1_nome && !respostas.c1_def){toast('Preencha ao menos o comportamento-alvo 1 (Bloco 3).','error');return;}
     if(!respostas.q97||!respostas.q98||!respostas.q99){toast('Responda as perguntas classificatórias finais (último bloco).','error');return;}
-    payload.data_envio=new Date().toISOString();
+    if(realStatus==='enviado' && !existing?.data_envio) payload.data_envio=new Date().toISOString();
   }
-  const btn=document.getElementById(status==='enviado'?'btnEnv':'btnRasc');btn.disabled=true;btn.innerHTML='<span class="loader"></span>';
+  const btn=document.getElementById(status==='rascunho'?'btnRasc':'btnEnv');if(btn){btn.disabled=true;btn.innerHTML='<span class="loader"></span>';}
   let res;
-  if(S.formSel.form?.id) res=await sb.from('formularios_conduta').update(payload).eq('id',S.formSel.form.id).select().single();
+  if(existing?.id) res=await sb.from('formularios_conduta').update(payload).eq('id',existing.id).select().single();
   else res=await sb.from('formularios_conduta').insert(payload).select().single();
-  btn.disabled=false;
-  if(res.error){toast(res.error.message,'error');btn.textContent=status==='enviado'?'Enviar para o painel':'Salvar rascunho';return;}
+  if(btn)btn.disabled=false;
+  if(res.error){toast(res.error.message,'error');if(btn)btn.textContent=(status==='rascunho')?'Salvar rascunho':(status==='manter'?'Salvar alterações':'Enviar para o painel');return;}
   S.formSel.form=res.data;
-  toast(status==='enviado'?'Formulário enviado ao painel!':'Rascunho salvo.','success');
-  UI.go(status==='enviado'?'kanban':'meus');
+  toast(status==='rascunho'?'Rascunho salvo.':(status==='manter'?'Alterações salvas.':'Formulário enviado ao painel!'),'success');
+  UI.go(status==='rascunho'?'meus':'kanban');
 };
 
 /* ---------- MEUS FORMULÁRIOS ---------- */
@@ -977,7 +1070,7 @@ Views.meus=async()=>{
       <td>${f.modelo_escolhido?`<span class="badge">${f.modelo_escolhido}</span>`:'—'}</td>
       <td>${statusBadge(f.status)}</td>
       <td style="color:var(--text-soft);font-size:13px">${fmtDate(f.updated_at)}</td>
-      <td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">${(f.status==='rascunho'||can.admin())?'Editar':'Ver'}</button>${can.admin()?`<button class="btn btn-danger btn-sm" onclick="Views.formDel('${f.id}','${esc(f.pacientes?.nome||'')}')">Excluir</button>`:''}</td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">${(can.admin()||f.profissional_id===S.user.id)?'Editar':'Ver'}</button>${can.admin()?`<button class="btn btn-danger btn-sm" onclick="Views.formDel('${f.id}','${esc(f.pacientes?.nome||'')}')">Excluir</button>`:''}</td>
     </tr>`).join('')}
   </tbody></table></div>`);
 };
@@ -1171,7 +1264,8 @@ Views.kanban=async(silent=false)=>{
   if(!can.viewAll())q=q.eq('profissional_id',S.user.id);
   const {data}=await q;
   const forms=data||[];
-  const cols=KCOLS.map(c=>{
+  const KSHOW = can.coord() ? KCOLS : KCOLS.filter(c=>['enviado','finalizado'].includes(c.key));
+  const cols=KSHOW.map(c=>{
     const items=forms.filter(f=>kStatusToCol(f.status)===c.key);
     return `<div class="kcol" data-col="${c.key}" ondragover="Kan.over(event)" ondragleave="Kan.leave(event)" ondrop="Kan.drop(event,'${c.key}')">
       <div class="kcol-h"><b>${c.l}</b><span class="cnt">${items.length}</span></div>
@@ -1188,16 +1282,17 @@ Views.kanban=async(silent=false)=>{
   // Atualização automática REMOVIDA — o usuário atualiza manualmente (botão Atualizar ou F5).
 };
 function kcard(f){
-  return `<div class="kcard" draggable="${can.viewAll()}" ondragstart="Kan.start(event,'${f.id}')" ondragend="Kan.end(event)">
+  const canEdit = can.admin() || f.profissional_id===S.user.id; // ADM ou autor
+  return `<div class="kcard" draggable="${can.coord()}" ondragstart="Kan.start(event,'${f.id}')" ondragend="Kan.end(event)">
     <div class="kp">${avatarHTML(f.pacientes?.foto_url,f.pacientes?.nome)}<b>${esc(f.pacientes?.nome||'—')}</b></div>
     <div class="meta">Modelo: <b>${f.modelo_escolhido||'—'}</b><br>Prof.: ${esc(f.perfis?.nome||'—')}<br>${statusBadge(f.status)}</div>
     <div class="kact">
       <button class="btn btn-ghost btn-sm" onclick="Kan.detail('${f.id}')">Detalhes</button>
-      ${can.admin()?`<button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">Editar</button>`:''}
-      ${f.status==='enviado'&&can.viewAll()?`<button class="btn btn-primary btn-sm" onclick="Kan.toGeracao('${f.id}')">Enviar p/ IA</button>`:''}
-      ${f.status==='em_geracao'&&can.viewAll()?`<button class="btn btn-primary btn-sm" onclick="Kan.gerar('${f.id}')">Gerar Relatório (IA)</button>`:''}
+      ${canEdit?`<button class="btn btn-ghost btn-sm" onclick="Views.editForm('${f.id}')">Editar</button>`:''}
+      ${f.status==='enviado'&&can.coord()?`<button class="btn btn-primary btn-sm" onclick="Kan.toGeracao('${f.id}')">Enviar p/ IA</button>`:''}
+      ${f.status==='em_geracao'&&can.coord()?`<button class="btn btn-primary btn-sm" onclick="Kan.gerar('${f.id}')">Gerar Relatório (IA)</button>`:''}
       ${['gerado','em_revisao','aprovado','ajustes','finalizado'].includes(f.status)?`<button class="btn btn-ghost btn-sm" onclick="Kan.baixar('${f.id}')">Baixar .docx</button>`:''}
-      ${['gerado','em_revisao','aprovado'].includes(f.status)&&can.viewAll()?`<button class="btn btn-ghost btn-sm" onclick="Kan.move('${f.id}','finalizado')">Finalizar</button>`:''}
+      ${['gerado','em_revisao','aprovado'].includes(f.status)&&can.coord()?`<button class="btn btn-ghost btn-sm" onclick="Kan.move('${f.id}','finalizado')">Finalizar</button>`:''}
       ${can.admin()?`<button class="btn btn-danger btn-sm" onclick="Views.formDel('${f.id}','${esc(f.pacientes?.nome||'')}')">Excluir</button>`:''}
     </div>
   </div>`;
@@ -1207,26 +1302,27 @@ const Kan={
   _poll:null,
   /* (Re)arma o polling: se há cartões em geração e o usuário está no Kanban, recarrega em 12s. Caso contrário, encerra. */
   autopoll(){ if(Kan._poll){clearTimeout(Kan._poll);Kan._poll=null;} },
-  start(e,id){if(!can.viewAll())return;Kan._drag=id;e.target.classList.add('drag');},
+  start(e,id){if(!can.coord())return;Kan._drag=id;e.target.classList.add('drag');},
   end(e){e.target.classList.remove('drag');document.querySelectorAll('.kcol').forEach(c=>c.classList.remove('dropok'));},
-  over(e){if(!can.viewAll())return;e.preventDefault();e.currentTarget.classList.add('dropok');},
+  over(e){if(!can.coord())return;e.preventDefault();e.currentTarget.classList.add('dropok');},
   leave(e){e.currentTarget.classList.remove('dropok');},
-  async drop(e,col){e.preventDefault();e.currentTarget.classList.remove('dropok');if(!Kan._drag||!can.viewAll())return;
+  async drop(e,col){e.preventDefault();e.currentTarget.classList.remove('dropok');if(!Kan._drag||!can.coord())return;
     const id=Kan._drag;Kan._drag=null;
     // Arrastar para a coluna de IA apenas move o status; a geração é disparada pelo botão "Gerar Relatório (IA)".
     if(col==='em_geracao'){await Kan.move(id,'em_geracao');return;}
     const map={enviado:'enviado',gerado:'em_revisao',finalizado:'finalizado'};
     await Kan.move(id,map[col]||col);},
-  async move(id,status){const r=await guard(sb.from('formularios_conduta').update({status}).eq('id',id).select().single());
+  async move(id,status){if(!can.coord()){toast('Apenas ADM ou Coordenação podem movimentar o painel.','error');return;}const r=await guard(sb.from('formularios_conduta').update({status}).eq('id',id).select().single());
     if(r){toast('Status atualizado.','success');Views.kanban();}},
   /* Etapa 1 — ADM move o cartão de "Enviados" para a coluna "Gerar Protocolo (IA)" (somente status). */
-  async toGeracao(id){const r=await guard(sb.from('formularios_conduta').update({status:'em_geracao'}).eq('id',id).select().single());
+  async toGeracao(id){if(!can.coord()){toast('Apenas ADM ou Coordenação podem enviar para a IA.','error');return;}const r=await guard(sb.from('formularios_conduta').update({status:'em_geracao'}).eq('id',id).select().single());
     if(r){toast('Cartão movido para "Gerar Protocolo (IA)". Clique em "Gerar Relatório (IA)".','info',5000);Views.kanban();}},
   /* Etapa 2 — Dispara o webhook do n8n (AI Agent OpenAI). O n8n é stateless: a IA pensa e devolve o protocolo
      pronto (HTML leve + texto). O PRÓPRIO sistema grava em protocolos_gerados e muda o status p/ "gerado"
      (usuário autenticado, RLS). Nada pesado é salvo no Supabase; o .docx é gerado no navegador ao baixar. */
   _busy:false,
   async gerar(id){
+    if(!can.coord()){toast('Apenas ADM ou Coordenação podem gerar relatórios na IA.','error');return;}
     if(Kan._busy)return;
     if(!N8N_WEBHOOK_URL || N8N_WEBHOOK_URL.includes('SEU-N8N')){
       toast('Configure a URL do webhook do n8n (const N8N_WEBHOOK_URL) para gerar o protocolo.','error',6000);return;
