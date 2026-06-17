@@ -344,10 +344,10 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
     </div>
 
     <!-- LOGIN -->
-    <form id="formLogin" onsubmit="AUTH.login(event)">
+    <form id="formLogin" onsubmit="AUTH.login(event)" autocomplete="on">
       <p class="auth-sub">Acesse com seu e-mail profissional para iniciar.</p>
-      <div class="field"><label class="fld req">E-mail</label><input type="email" id="li_email" placeholder="voce@clinica.com" required></div>
-      <div class="field"><label class="fld req">Senha</label><input type="password" id="li_pass" placeholder="••••••••" required></div>
+      <div class="field"><label class="fld req">E-mail</label><input type="email" id="li_email" placeholder="voce@clinica.com" autocomplete="username" required></div>
+      <div class="field"><label class="fld req">Senha</label><input type="password" id="li_pass" placeholder="••••••••" autocomplete="current-password" required></div>
       <button class="btn btn-primary btn-block" id="loginBtn" type="submit">Entrar</button>
       <p class="muted-line"><span class="link" onclick="AUTH.forgot()">Esqueci minha senha</span></p>
     </form>
@@ -459,23 +459,33 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fMGwWfRNK0oWvkfJ6ItVDg_PeECI7Xj';  // 
 /* Webhook do n8n que gera o Protocolo de Conduta (preparação p/ próxima etapa) */
 const N8N_WEBHOOK_URL   = 'https://primary-production-1e9c2.up.railway.app/webhook/gerar-protocolo-pdc';
 
-/* ══ DETECÇÃO SÍNCRONA DE RECUPERAÇÃO DE SENHA ══════════════════
-   CRÍTICO: ler o hash ANTES do createClient. O SDK do Supabase processa
-   o hash imediatamente ao criar o cliente — se esperarmos, o isRecovery
-   pode ficar false quando boot() checa no início. A leitura síncrona
-   garante que isRecovery = true ANTES de qualquer chamada async. */
-const _rawHash = location.hash || '';
-let isRecovery = _rawHash.includes('type=recovery') || _rawHash.includes('type%3Drecovery');
+/* ══ INICIALIZAÇÃO DE AUTENTICAÇÃO ══════════════════════════════
+   REGRA CRÍTICA: NÃO limpar o hash antes de createClient.
+   O SDK precisa ler #access_token=...&type=recovery para estabelecer
+   a sessão de recuperação. Limpar antes impede o SDK de processar os
+   tokens — o OTP fica consumido pelo servidor mas a sessão nunca é
+   criada, resultando em "otp_expired" na próxima tentativa com o mesmo link.
 
-/* Se já sabemos que é recuperação, limpa o hash imediatamente */
-if (isRecovery && location.hash) {
+   Erros de OTP chegam como: #error=access_denied&error_code=otp_expired
+   e são detectados abaixo antes do createClient (não há tokens nesse caso).
+   Tokens válidos chegam como: #access_token=...&type=recovery — o SDK
+   os lê e emite PASSWORD_RECOVERY no onAuthStateChange. */
+
+const _hashStr = location.hash || '';
+const _hashQS  = new URLSearchParams(_hashStr.slice(1));
+const _recoveryErr = _hashQS.get('error_code') || _hashQS.get('error') || null;
+
+/* Limpa hash de ERRO imediatamente (sem tokens para o SDK processar) */
+if (_recoveryErr && location.hash) {
   history.replaceState(null, '', location.pathname + location.search);
 }
 
+let isRecovery = false; /* será true após o SDK emitir PASSWORD_RECOVERY */
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* Listener de reforço — captura casos em que o SDK normaliza o evento
-   independentemente do hash já ter sido processado acima */
+/* O SDK lê #access_token=...&type=recovery e emite PASSWORD_RECOVERY.
+   SÓ AQUI limpamos o hash — após o SDK já ter processado os tokens. */
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     isRecovery = true;
@@ -684,13 +694,23 @@ const AUTH={
 
 /* ===================== BOOT / SESSION ===================== */
 async function boot(){
-  /* Se estamos no fluxo de recuperação de senha, não prosseguir com o login normal.
-     Com a detecção síncrona do hash, isRecovery é true ANTES do primeiro await. */
+  /* OTP expirado/inválido: mostra mensagem clara e fica na tela de login.
+     O usuário deve solicitar um novo link clicando em "Esqueci minha senha". */
+  if(_recoveryErr){
+    show('auth');
+    const _errMsg=_recoveryErr==='otp_expired'
+      ?'Link de recuperação expirado ou já utilizado. Clique em "Esqueci minha senha" para receber um novo link.'
+      :'Link de recuperação inválido. Solicite novamente o e-mail de redefinição.';
+    setTimeout(()=>toast(_errMsg,'error',9000),350);
+    return;
+  }
+  /* Fluxo de recuperação ativo: PASSWORD_RECOVERY já disparou antes de boot() */
   if(isRecovery){show('auth');return;}
   const {data:{session}}=await sb.auth.getSession();
   if(!session){show('auth');return;}
-  /* Proteção extra: se a sessão atual for de recuperação, mostrar tela de reset */
-  if(session?.user?.aud==='authenticated' && isRecovery){show('auth');showResetPanel();return;}
+  /* Verificação pós-await: PASSWORD_RECOVERY pode ter disparado DURANTE o getSession().
+     Se sim, showResetPanel() já foi chamado pelo onAuthStateChange — apenas retornamos. */
+  if(isRecovery){show('auth');return;}
   S.user=session.user;
   const {data:perfil,error}=await sb.from('perfis').select('*').eq('id',S.user.id).single();
   if(error||!perfil){show('auth');toast('Perfil não encontrado.','error');return;}
