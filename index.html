@@ -475,17 +475,33 @@ const _hashStr = location.hash || '';
 const _hashQS  = new URLSearchParams(_hashStr.slice(1));
 const _recoveryErr = _hashQS.get('error_code') || _hashQS.get('error') || null;
 
+/* DETECÇÃO SÍNCRONA do fluxo de recuperação — feita ANTES de qualquer await.
+   O link de redefinição volta para cá como #access_token=...&type=recovery.
+   Marcamos isRecovery=true IMEDIATAMENTE para que o init() na carga da página
+   NUNCA faça login automático enquanto o SDK ainda está processando o token.
+   (Era exatamente essa corrida que causava o "flash <1s" seguido de login
+   com a senha antiga.) */
+const _isRecoveryURL = (_hashQS.get('type') === 'recovery') ||
+  (_hashQS.has('access_token') && /type=recovery/.test(_hashStr));
+
 /* Limpa hash de ERRO imediatamente (sem tokens para o SDK processar) */
 if (_recoveryErr && location.hash) {
   history.replaceState(null, '', location.pathname + location.search);
 }
 
-let isRecovery = false; /* será true após o SDK emitir PASSWORD_RECOVERY */
+let isRecovery = _isRecoveryURL; /* já nasce true quando a URL é de recuperação */
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* persistSession:false → o sistema NUNCA entra sozinho usando uma sessão salva
+   no navegador. O usuário SEMPRE precisa digitar e clicar em "Entrar". Isso
+   também elimina a sessão antiga que era recuperada por engano durante o reset
+   de senha (origem do bug de login automático com credenciais antigas).
+   detectSessionInUrl continua true para o SDK ler o token de recuperação. */
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession:false, autoRefreshToken:true, detectSessionInUrl:true }
+});
 
 /* O SDK lê #access_token=...&type=recovery e emite PASSWORD_RECOVERY.
-   SÓ AQUI limpamos o hash — após o SDK já ter processado os tokens. */
+   Limpamos o hash só aqui, depois que o SDK já processou os tokens. */
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     isRecovery = true;
@@ -1658,8 +1674,27 @@ Views.funcDel=(id,nome)=>confirmDel(`Excluir a função clínica <b>${nome}</b>?
   if(r!==null){toast('Função excluída.','success');await loadFuncoes();Views.funcoes();}
 });
 
-/* ===================== BOOT ===================== */
-document.addEventListener('DOMContentLoaded', boot);
+/* ===================== INIT (carga da página) =====================
+   NUNCA faz login automático. Trata 3 casos:
+   1) Link de recuperação com erro (expirado/inválido) → login + aviso.
+   2) Link de recuperação válido → tela de redefinição de senha.
+   3) Caso normal → tela de login. O usuário SEMPRE clica em "Entrar".
+   O boot() (que carrega o app) só roda após login/cadastro explícito. */
+async function init(){
+  if(_recoveryErr){
+    show('auth');
+    const _errMsg=_recoveryErr==='otp_expired'
+      ?'Link de recuperação expirado ou já utilizado. Clique em "Esqueci minha senha" para receber um novo link.'
+      :'Link de recuperação inválido. Solicite novamente o e-mail de redefinição.';
+    setTimeout(()=>toast(_errMsg,'error',9000),350);
+    return;
+  }
+  if(isRecovery){ show('auth'); showResetPanel(); return; }
+  /* Caso normal: garante que nenhuma sessão residual fique ativa e mostra o login. */
+  try{ await sb.auth.signOut({scope:'local'}); }catch(e){}
+  show('auth');
+}
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
