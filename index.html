@@ -459,17 +459,26 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fMGwWfRNK0oWvkfJ6ItVDg_PeECI7Xj';  // 
 /* Webhook do n8n que gera o Protocolo de Conduta (preparação p/ próxima etapa) */
 const N8N_WEBHOOK_URL   = 'https://primary-production-1e9c2.up.railway.app/webhook/gerar-protocolo-pdc';
 
+/* ══ DETECÇÃO SÍNCRONA DE RECUPERAÇÃO DE SENHA ══════════════════
+   CRÍTICO: ler o hash ANTES do createClient. O SDK do Supabase processa
+   o hash imediatamente ao criar o cliente — se esperarmos, o isRecovery
+   pode ficar false quando boot() checa no início. A leitura síncrona
+   garante que isRecovery = true ANTES de qualquer chamada async. */
+const _rawHash = location.hash || '';
+let isRecovery = _rawHash.includes('type=recovery') || _rawHash.includes('type%3Drecovery');
+
+/* Se já sabemos que é recuperação, limpa o hash imediatamente */
+if (isRecovery && location.hash) {
+  history.replaceState(null, '', location.pathname + location.search);
+}
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ── Detecção de fluxo de recuperação de senha (link por e-mail) ──
-   O Supabase v2 emite PASSWORD_RECOVERY quando o token do link é processado.
-   Interceptamos ANTES do boot() para evitar que o usuário entre no app
-   sem ter trocado a senha. */
-let isRecovery = false;
+/* Listener de reforço — captura casos em que o SDK normaliza o evento
+   independentemente do hash já ter sido processado acima */
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     isRecovery = true;
-    // Limpa o hash da URL (contém o access_token de recuperação)
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
     show('auth');
     showResetPanel();
@@ -675,10 +684,13 @@ const AUTH={
 
 /* ===================== BOOT / SESSION ===================== */
 async function boot(){
-  /* Se estamos no fluxo de recuperação de senha, não prosseguir com o login normal */
-  if(isRecovery)return;
+  /* Se estamos no fluxo de recuperação de senha, não prosseguir com o login normal.
+     Com a detecção síncrona do hash, isRecovery é true ANTES do primeiro await. */
+  if(isRecovery){show('auth');return;}
   const {data:{session}}=await sb.auth.getSession();
   if(!session){show('auth');return;}
+  /* Proteção extra: se a sessão atual for de recuperação, mostrar tela de reset */
+  if(session?.user?.aud==='authenticated' && isRecovery){show('auth');showResetPanel();return;}
   S.user=session.user;
   const {data:perfil,error}=await sb.from('perfis').select('*').eq('id',S.user.id).single();
   if(error||!perfil){show('auth');toast('Perfil não encontrado.','error');return;}
@@ -693,11 +705,18 @@ async function boot(){
 function show(which){['auth','pending','app'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==which));}
 
 /* Exibe a tela dedicada de redefinição de senha (fluxo via link no e-mail) */
-function showResetPanel(){
+async function showResetPanel(){
   const main=document.getElementById('authMainCard');
   const reset=document.getElementById('authResetCard');
   if(main)main.classList.add('hidden');
   if(reset)reset.classList.remove('hidden');
+  /* Garante que os campos estejam limpos */
+  const rp=document.getElementById('rp_pass');
+  const rp2=document.getElementById('rp_pass2');
+  if(rp)rp.value='';
+  if(rp2)rp2.value='';
+  const msg=document.getElementById('rp_passmsg');
+  if(msg)msg.style.display='none';
   setTimeout(()=>document.getElementById('rp_pass')?.focus(),150);
 }
 async function loadFuncoes(){const {data}=await sb.from('funcoes_clinicas').select('*').order('nome');S.funcoes=data||[];}
