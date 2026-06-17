@@ -146,6 +146,11 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
   background:var(--accent-soft);display:grid;place-items:center;color:var(--accent);font-weight:700}
 .user-chip b{font-size:13.5px;display:block;line-height:1.2}
 .user-chip span{font-size:11.5px;color:var(--text-soft)}
+.chip-gear{margin-left:auto;flex:none;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--text-soft);cursor:pointer;
+  transition:background .18s,color .18s,border-color .18s,transform .4s}
+.chip-gear svg{width:16px;height:16px}
+.chip-gear:hover{background:rgba(37,99,235,.14);border-color:var(--accent);color:var(--accent);transform:rotate(45deg)}
 
 .main{min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:14px;padding:18px 30px;position:sticky;top:0;z-index:40;
@@ -430,6 +435,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
       <div class="user-chip">
         <div class="ph" id="me_av">··</div>
         <div style="min-width:0"><b id="me_nome">—</b><span id="me_role">—</span></div>
+        <button class="chip-gear" id="me_gear" title="Editar meu perfil" aria-label="Editar meu perfil" onclick="AUTH.editProfile()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
       </div>
       <button class="btn btn-ghost btn-block btn-sm" style="margin-top:10px" onclick="AUTH.logout()">
         <svg viewBox="0 0 24 24" width="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sair</button>
@@ -638,6 +646,55 @@ const AUTH={
     toast('Conta criada com sucesso!','success',3500);
     /* boot decide o destino: admin ativo entra direto; demais veem "aguardando liberação" */
     await boot();},
+  /* ===== Editar meu perfil (Nome, Telefone, Função clínica e foto) =====
+     Disponível para todos os perfis logados. E-mail e senha NÃO são alterados aqui. */
+  editProfile(){
+    if(!S.perfil){toast('Perfil não carregado.','error');return;}
+    const p=S.perfil;
+    if(!S.funcoes||!S.funcoes.length){loadFuncoes();}
+    const opts='<option value="">Selecione…</option>'+(S.funcoes||[]).map(f=>`<option value="${f.id}" ${f.id===p.funcao_id?'selected':''}>${esc(f.nome)}</option>`).join('');
+    const avatar=p.foto_url?`<img src="${esc(p.foto_url)}" alt="">`:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    Modal.open(`<div class="modal-h"><h3>Editar meu perfil</h3><button class="x-btn" onclick="Modal.close()">✕</button></div>
+      <div class="avatar-pick"><div class="avatar-prev" id="ep_prev">${avatar}</div>
+        <div style="flex:1;min-width:0"><label class="fld">Foto de perfil</label>
+          <label class="file-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>Trocar imagem<input type="file" id="ep_foto" accept="image/*" onchange="AUTH.epPrev(event)"></label>
+          <span class="file-name" id="ep_fname">PNG ou JPG · opcional</span></div></div>
+      <div class="field"><label class="fld req">Nome completo</label><input id="ep_nome" value="${esc(p.nome||'')}"></div>
+      <div class="field"><label class="fld">Telefone</label><input id="ep_tel" value="${esc(p.telefone||'')}" placeholder="(00) 00000-0000"></div>
+      <div class="field"><label class="fld">Função clínica</label><select id="ep_funcao">${opts}</select></div>
+      <div class="field"><label class="fld">E-mail</label><input value="${esc(S.user?.email||'')}" disabled style="opacity:.65;cursor:not-allowed">
+        <span class="file-name">E-mail e senha não são alterados aqui.</span></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancelar</button>
+        <button class="btn btn-primary" id="epSave" onclick="AUTH.saveProfile()">Salvar</button></div>`);
+  },
+  epPrev(e){const f=e.target.files[0];if(!f)return;
+    if(!f.type.startsWith('image/')){toast('Selecione um arquivo de imagem.','error');e.target.value='';return;}
+    if(f.size>5*1024*1024){toast('Imagem muito grande (máx. 5 MB).','error');e.target.value='';return;}
+    const fn=document.getElementById('ep_fname');if(fn)fn.textContent=f.name;
+    const r=new FileReader();r.onload=ev=>{document.getElementById('ep_prev').innerHTML=`<img src="${ev.target.result}" alt="">`;};r.readAsDataURL(f);},
+  async saveProfile(){
+    const nome=document.getElementById('ep_nome').value.trim();
+    if(!nome){toast('Informe seu nome completo.','error');return;}
+    const telefone=document.getElementById('ep_tel').value.trim()||null;
+    const funcao_id=document.getElementById('ep_funcao').value||null;
+    const b=document.getElementById('epSave');b.disabled=true;b.innerHTML='<span class="loader"></span>';
+    let foto_url=undefined;const file=document.getElementById('ep_foto').files[0];
+    try{
+      if(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+        const path=`${S.user.id}/${Date.now()}.${ext}`;
+        const up=await sb.storage.from('avatars').upload(path,file,{upsert:true,contentType:file.type});
+        if(!up.error)foto_url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+        else toast('Não foi possível enviar a foto, demais dados serão salvos.','info');}
+    }catch(err){console.warn('foto perfil:',err);}
+    const rec={nome,telefone,funcao_id,...(foto_url!==undefined?{foto_url}:{})};
+    const r=await sb.from('perfis').update(rec).eq('id',S.user.id).select().single();
+    if(r.error){b.disabled=false;b.textContent='Salvar';toast(r.error.message||'Erro ao salvar perfil.','error',5000);return;}
+    S.perfil=r.data;
+    renderMe();
+    Modal.close();
+    toast('Perfil atualizado com sucesso!','success');
+  },
   /* Validação em tempo real da confirmação de senha (tela de redefinição) */
   checkResetPass(){
     const p=document.getElementById('rp_pass')?.value||'';
